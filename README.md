@@ -1,8 +1,8 @@
-# jtm
+# jtm - HTML to JSON converter
 
-HTML to JSON converter
+#### A simple tool offering quick lossless HTML to JSON conversion
 
-This is a quick and trivial HTML to JSON lossless convertor:
+the tool offers following behaviors:
 - HTML tags semantic unaware - convertor does not keep track or different tags meanings,
  except few tag:
   * separately parses `<script>` tag, which requires no tag value interpolation
@@ -13,17 +13,21 @@ logic applied:
     - if currently parsed tag's value is getting closed by another tag, it means that the tag
 being parsed is an empty tag
 
- Conversion rules:
+
+#### Conversion rules:
+
  - each tag is translated into a JSON object, with a single label - name of the tag
  - all attributes go into object pairs *`label:value`*, where:
     * *`label`* is the attribute name
     * *`value`* is the attribute value
- - a value of the tag (i.e. everything between opening and closing tag) is going under the label 
-`~value` (a default label, could be changed by user)
+ - a value of the tag (i.e. everything between opening and closing tag) is going under the
+ label `~value` (a default label, could be changed by user)
  - empty tags w/o attributes will be set to JSON `null` value
- 
- A following sample illustrates html to json conversion rules:
-- source html sample:
+
+
+#### A following sample illustrates HTML to JSON conversion rules:
+
+- source HTML sample:
 ```
 <!DOCTYPE html>
 <html>
@@ -39,7 +43,7 @@ being parsed is an empty tag
    </body>
 </html>
 ```
-- is converted into json:
+- is converted into JSON:
 ```
 [
    {
@@ -88,3 +92,54 @@ being parsed is an empty tag
    }
 ]
 ```
+
+#### Linux and MacOS precompiled binaries are available for download
+
+For compiling c++14 (or later) is required:
+  - to compile under macOS, use cli: `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
+  - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
+
+
+#### Compile and install instructions:
+
+download `jtm-master.zip`, unzip it, descend into unzipped folder, compile using
+an appropriate command, move compiled file into an install location.
+
+here's the example steps (for macOS):
+  - say, `jtm-master.zip` has been downloaded to a folder and the terminal app is open in that
+folder:
+  - `unzip jtm-master.zip`
+  - `cd jtm-master`
+  - `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
+  - `sudo mv ./jt, /usr/local/bin/`
+
+help screen:
+```
+bash $ jtm -h
+usage: jtm [-d] [-h] [-n] [-r] [-s] [-t] [-e extra] [-v value] [html_src]
+
+HTML to JSON lossless convertor. Version 1.01, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+
+optional arguments:
+ -d             turn on debugs (multiple calls increase verbosity)
+ -h             help screen
+ -n             start enlisting tag values from the first entry
+ -r             force printing json in a raw format
+ -s             enforce quoted solidus behavior
+ -t             do not retry parsing upon facing a closing tag w/o pair
+ -e extra       label used for extra text in tags (i.e. non-attributes) [default: ~extra]
+ -v value       label used for tag values [default: ~value]
+
+standalone arguments:
+  html_src      file to read html from [default: <stdin>]
+
+the tool is html tag agnostic, though provides separate behaviors:
+ - understand and parse tag <!...>
+ - parse tag attributes
+ - <script> tag value is not interpolated
+
+bash $ 
+```
+
+
+
