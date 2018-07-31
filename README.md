@@ -99,7 +99,7 @@ For compiling c++14 (or later) is required:
   - to compile under macOS, use cli: `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
-, or download latest precompiled binary:
+or download latest precompiled binary:
 - [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.01)
 - [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.01)
 - [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.01)
