@@ -117,7 +117,7 @@ folder:
   - `unzip jtm-master.zip`
   - `cd jtm-master`
   - `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
-  - `sudo mv ./jt, /usr/local/bin/`
+  - `sudo mv ./jtm /usr/local/bin/`
 
 #### help screen:
 ```
