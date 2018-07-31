@@ -99,6 +99,12 @@ For compiling c++14 (or later) is required:
   - to compile under macOS, use cli: `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
+or download latest precompiled binary:
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/blob/master/jtm-macos-64.v1.01)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/blob/master/jtm-macos-32.v1.01)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/blob/master/jtm-linux-64.v1.01)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/blob/master/jtm-linux-32.v1.01)
+
 
 #### Compile and install instructions:
 
@@ -113,10 +119,10 @@ folder:
   - `c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp`
   - `sudo mv ./jt, /usr/local/bin/`
 
-help screen:
+#### help screen:
 ```
 bash $ jtm -h
-usage: jtm [-d] [-h] [-n] [-r] [-s] [-t] [-e extra] [-v value] [html_src]
+usage: jtm [-d] [-h] [-n] [-r] [-s] [-t] [-e label] [-v label] [html_src]
 
 HTML to JSON lossless convertor. Version 1.01, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
@@ -127,8 +133,8 @@ optional arguments:
  -r             force printing json in a raw format
  -s             enforce quoted solidus behavior
  -t             do not retry parsing upon facing a closing tag w/o pair
- -e extra       label used for extra text in tags (i.e. non-attributes) [default: ~extra]
- -v value       label used for tag values [default: ~value]
+ -e label       label used for extra text in tags (i.e. non-attributes) [default: ~extra]
+ -v label       label used for tag values [default: ~value]
 
 standalone arguments:
   html_src      file to read html from [default: <stdin>]
