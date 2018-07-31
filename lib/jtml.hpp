@@ -509,8 +509,11 @@ bool Jtml::interpolateTag_(Json &j, const_sit &si, const std::string &mytag) con
   if(j[mytag].erase(value_label()).empty()) j[mytag] = NUL{};
  }
  j = ARY{ OBJ{ LBL{ mytag, j[mytag] } } };
- if(not jcnt.is_null())                                         // i.e. if "~value" was moved here
+ if(not jcnt.is_null()) {                                       // i.e. if "~value" was moved here
+  if(enumerate() and jcnt.is_array() and jcnt.size() == 2 and jcnt.front().is_string())
+   jcnt = jcnt.front();
   j.push_back(jcnt);
+ }
  for(auto &jnr: subj) j.push_back(std::move(jnr));              // merge subj
  j.push_back(STR{return_tag});                                  // add return tag
  return false;
@@ -552,7 +555,7 @@ std::string Jtml::extractTag_(const_sit & si, const_sit& end_it) const {
  // expected *end_it at the end: <tag_name| |...>, or <!|-|- ...-->
  if(*si != '<') throw EXP(expect_tag_opening);
  auto start_it = ++si;
- if(*si == '!') {                                               // extract <! tag> 
+ if(*si == '!') {                                               // extract <! tag>
   end_it = ++si;                                                // *si: <!|.|...
   parseExclamationTag(si);                                      // *si: ...|>|
   return std::string{"!"};
@@ -571,7 +574,7 @@ Jtml::const_sit & Jtml::parseExclamationTag(const_sit& si) const {
  // expected *si start/end: <|-|-... / --|>|, or <|.|.. / ...|>|
  if(*si == '-' and *(si+1) == '-') {                            // valid comment, find "-->" end
   do {
-   do findAnyOf_("-", ++si); while(*(si+1) != '-') ;            // i.e. do while "--" not found 
+   do findAnyOf_("-", ++si); while(*(si+1) != '-') ;            // i.e. do while "--" not found
    ++si;
   } while(*(si+1) != '>');                                      // while "-->" not found
   return ++si;
@@ -582,7 +585,7 @@ Jtml::const_sit & Jtml::parseExclamationTag(const_sit& si) const {
 
 
 Jtml::const_sit & Jtml::findAnyOf_(const char *dlm, const_sit &si, bool throw_exp) const {
- // iterate si until any char in dlm is found  
+ // iterate si until any char in dlm is found
  while(*si != '\0') {
   for(const char * d = dlm; *d != '\0'; ++d)
    if(*d == *si) return si;

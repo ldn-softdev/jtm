@@ -7,11 +7,8 @@
 
 using namespace std;
 
-#define VERSION "1.00"
+#define VERSION "1.01"
 
-/*
-c++ -o jtm -Wall -std=c++14 -Ofast jtm.cpp 
-*/
 
 #define OPT_RDT -
 #define OPT_DBG d
@@ -68,18 +65,18 @@ int main(int argc, char *argv[]) {
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
  opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
  opt[CHR(OPT_ELB)].desc("label used for extra text in tags (i.e. non-attributes)")
-                  .bind(conv.extra_label().c_str()).name("extra");
- opt[CHR(OPT_ENM)].desc("enlist tag values starting from the first entry");
+                  .bind(conv.extra_label().c_str()).name("label");
+ opt[CHR(OPT_ENM)].desc("start enlisting tag values from the first entry");
  opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
  opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
  opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o pair");
  opt[CHR(OPT_VLB)].desc("label used for tag values")
-                  .bind(conv.value_label().c_str()).name("value");
+                  .bind(conv.value_label().c_str()).name("label");
  opt[0].desc("file to read html from").name("html_src").bind("<stdin>");
- opt.epilog("\nthe tool is html tag agnostic, though provides isolated behaviors:\n\
- - understand and parse tag <!>\n\
- - parse attributes\n\
- - <script> tag value is not interpolated\n\n");
+ opt.epilog("\nthe tool is html tag agnostic, though provides separate behaviors:\n\
+ - understand and parse tag <!...>\n\
+ - parse tag attributes\n\
+ - <script> tag value is not interpolated\n");
 
  // parse options
  try { opt.parse(argc,argv); }
@@ -96,7 +93,7 @@ int main(int argc, char *argv[]) {
 
  html = read_html(r);
 
- try{ 
+ try{
   cout << conv.jsonize(html).raw(opt[CHR(OPT_RAW)]) << endl;
  }
  catch( stdException & e ) {
@@ -107,7 +104,7 @@ int main(int argc, char *argv[]) {
   cerr << "regexp exception: " << e.what() << endl;
   return e.code() + OFF_REGEX;
  }
- 
+
  return RC_OK;
 }
 
