@@ -21,3 +21,25 @@ being parsed is an empty tag
  - a value of the tag (i.e. everything between opening and closing tag) is going under the label 
 `~value` (a default label, could be changed by user)
  - empty tags w/o attributes will be set to JSON `null` value
+ 
+ A following sample illustrates html to json conversion rules:
+- source htm sample:
+```
+<!DOCTYPE html>
+<html>
+   <head>
+       <title>HTML example</title>
+       <meta charset="utf-8">
+   </head>
+   <body text="green">
+       <p>
+           Oh Brother,<br>
+           Where Art Thou?<br>
+       </p>
+   </body>
+</html>)";
+```
+- is converted into json:
+```
+[ { "!": "DOCTYPE html" }, { "html": { "~value": [ { "head": { "~value": [ { "title": { "~value": "HTML example" } }, { "meta": { "charset": "utf-8" } } ] } }, { "body": { "text": "green", "~value": { "p": { "~value": [ "Oh Brother,", { "br": null }, "Where Art Thou?", { "br": null } ] } } } } ] } } ]
+```
