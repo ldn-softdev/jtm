@@ -3,7 +3,7 @@
 HTML to JSON converter
 
 This is a quick and trivial HTML to JSON lossless convertor:
- - HTML tags semantic unaware - convertor does not keep track or different tags meanings,
+- HTML tags semantic unaware - convertor does not keep track or different tags meanings,
  except few tag:
   * separately parses `<script>` tag, which requires no tag value interpolation
   * separately parses `<!...>` tags, which do not not contain attributes
