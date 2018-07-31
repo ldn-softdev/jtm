@@ -10,7 +10,7 @@ This is a quick and trivial HTML to JSON lossless convertor:
   * empty tags (those which do not have a closing pair: either self closed, e.g:
 `<img .../>`, or specially defined like `<br>`) are not tracked, instead following parsing
 logic applied:
-  - - if currently parsed tag's value is getting closed by another tag, it means that the tag
+    - if currently parsed tag's value is getting closed by another tag, it means that the tag
 being parsed is an empty tag
 
  Conversion rules:
@@ -23,7 +23,7 @@ being parsed is an empty tag
  - empty tags w/o attributes will be set to JSON `null` value
  
  A following sample illustrates html to json conversion rules:
-- source htm sample:
+- source html sample:
 ```
 <!DOCTYPE html>
 <html>
@@ -37,7 +37,7 @@ being parsed is an empty tag
            Where Art Thou?<br>
        </p>
    </body>
-</html>)";
+</html>
 ```
 - is converted into json:
 ```
