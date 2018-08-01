@@ -100,10 +100,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.01)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.01)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.01)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v1.01)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.02)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.02)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.02)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v1.02)
 
 
 #### Compile and install instructions:
@@ -147,5 +147,7 @@ the tool is html tag agnostic, though provides separate behaviors:
 bash $ 
 ```
 
+-  Once HTML is converted to JSON, use [jtc](https://github.com/ldn-softdev/jtc) 
+tool to extract / manipulated JSON data
 
 
