@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "1.01"
+#define VERSION "1.02"
 
 
 #define OPT_RDT -
@@ -116,13 +116,14 @@ string read_html(CommonResource &r) {
  // read and html string
  REVEAL(r, opt, DBG())
 
- ifstream file(opt[0].c_str(), ifstream::in);
  bool redirect{ opt[CHR(OPT_RDT)].hits() != 0 or opt[0].hits() == 0 };
  DBG(0)
   DOUT() << "reading html from: " << (redirect? "<stdin>": opt[0].c_str()) <<endl;
 
- return string{istream_iterator<char>(redirect? cin>>noskipws : file>>noskipws),
-                       istream_iterator<char>{}};
+ return string{istream_iterator<char>(redirect?
+                                      cin>>noskipws: 
+                                      ifstream{opt[0].c_str(), ifstream::in}>>noskipws),
+               istream_iterator<char>{}};
 }
 
 

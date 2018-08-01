@@ -510,9 +510,8 @@ bool Jtml::interpolateTag_(Json &j, const_sit &si, const std::string &mytag) con
  }
  j = ARY{ OBJ{ LBL{ mytag, j[mytag] } } };
  if(not jcnt.is_null()) {                                       // i.e. if "~value" was moved here
-  if(enumerate() and jcnt.is_array() and jcnt.size() == 2 and jcnt.front().is_string())
-   jcnt = jcnt.front();
-  j.push_back(jcnt);
+  bool enlisted{enumerate() and jcnt.is_array() and jcnt.size() == 2 and jcnt.front().is_string()};
+  j.push_back(enlisted? jcnt.front(): jcnt.root());
  }
  for(auto &jnr: subj) j.push_back(std::move(jnr));              // merge subj
  j.push_back(STR{return_tag});                                  // add return tag
