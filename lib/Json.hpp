@@ -1,5 +1,5 @@
 /*
- * Created by Dmitry Lyssenko, last modified July 25, 2018
+ * Created by Dmitry Lyssenko, last modified August 2, 2018
  *
  * yet another JSON implementation featuring:
  *  - easy c++ API
@@ -1376,13 +1376,13 @@ class Json{
                             WalkStep(std::string && l, Jsearch js): // enable emplacement
                              lexeme(std::move(l)), jsearch(js) {}
 
-        std::string         lexeme;                             // lexeme w/o suffix and quatifier
+        std::string         lexeme;                             // lexeme w/o suffix and quantifier
         Jsearch             jsearch;                            // Jsearch type
         long                offset{0};                          // current offset
         long                init{-1};
                             // init -1: init is not used. offset can be positive or negative
-                            // init -2: offset is used as absolute selector from root
-                            // init >0: offset is used as iterable, init keeps original offset
+                            // init -2: offset is used as absolute selector from root, like in [^n]
+                            // init >0: offset is used as an iterable, init keeps original offset
    std::vector<std::string> stripped;
                             // stripped[0] -> a stripped lexeme (required)
                             // stripped[1] -> attached label match (optional)
@@ -1391,13 +1391,13 @@ class Json{
         const char *        search_type() const { return Jsearch_str[jsearch]; }
         const std::string   label() const { return stripped.size()==2? stripped.back(): "-"; }
         bool                operator<(const WalkStep &r) const {
+                            // provided only for SearchCacheKey, which would require to
+                            // distinguish WalkSteps based on below members only
                              return stripped.back() != r.stripped.back()?
                                     stripped.back() < r.stripped.back():
                                     (jsearch != r.jsearch?
                                      jsearch < r.jsearch:
-                                     (init != r.init?
-                                      init < r.init:
-                                      stripped.front() < r.stripped.front()));
+                                     stripped.front() < r.stripped.front());
                             }
                             COUTABLE(WalkStep, offset, init, search_type(), label(), lexeme)
     };
@@ -1892,7 +1892,7 @@ class Json::iterator: public std::iterator<std::forward_iterator_tag, Jnode> {
     void                searchAll_(Jnode *, const char *, const
                                     WalkStep &w, std::vector<path_vector> &);
     bool                searchFwd_(Jnode *, const char *lbl, const WalkStep &, long &);
-    bool                searchBwd_(Jnode *, const char *lbl, const WalkStep &, long &);
+    bool                searchChild_(Jnode *, const char *lbl, const WalkStep &, long &);
     bool                labelMatch_(const std::string &, const WalkStep &, long &) const;
     bool                match_(const Jnode *, const char *lbl, const WalkStep &) const;
     bool                stringMatch_(const Jnode *, const char *lbl, const WalkStep &) const;
@@ -2163,9 +2163,7 @@ void Json::iterator::showBuiltPv_(std::ostream &out) const {
  out << "built path vector:";
  for(auto &it: pv_)
   out << (&it == &pv_.front()? " ":" -> ")
-      << (it.jit == json_().root().children_().end()?
-          "[end]":
-          it.lbl);
+      << (it.jit == json_().root().children_().end()? "(end)": it.lbl);
  out << std::endl;
 }
 
@@ -2218,11 +2216,15 @@ void Json::iterator::walkSearch_(size_t idx, Jnode *jn) {
  // build cache if needed, demultiplex fwd and bwd searches
  auto &ws = ws_[idx];
  auto i = ws.offset;                                            // needed stateful, for recursion
+
+ if(ws.lexeme.front() == LXM_SCH_CLS) {
+  if(not searchChild_(jn, nullptr, ws, i))
+   pv_.emplace_back(json_().root().children_().end(), "", idx);
+  return;
+ }
+
  if(ws.init < 0) {                                              // non-iterable, find once
-  bool found{ ws.lexeme.front() == LXM_SCH_OPN?
-                searchFwd_(jn, nullptr, ws, i):
-                searchBwd_(jn, nullptr, ws, i) };
-  if(not found)
+  if(not searchFwd_(jn, nullptr, ws, i))
    pv_.emplace_back(json_().root().children_().end(), "", idx);
   return;
  }
@@ -2242,7 +2244,6 @@ void Json::iterator::walkSearch_(size_t idx, Jnode *jn) {
   for(auto &path: cache[skey][ws.lexeme.front() == LXM_SCH_OPN? i: cache[skey].size()-i-1])
    pv_.push_back(path);
 }
-
 
 
 void Json::iterator::searchAll_(Jnode *jn, const char *lbl,
@@ -2267,10 +2268,9 @@ void Json::iterator::searchAll_(Jnode *jn, const char *lbl,
 }
 
 
-
 bool Json::iterator::searchFwd_(Jnode *jn, const char *lbl, const WalkStep &ws, long &i) {
  // search current Jnode tree forward, return true/false if found,
- // if found ws.back() must contain an iterator to the found node
+ // if found pv_.back() must contain an iterator to the found node
  if(jn->is_iterable()) {
   for(auto it = jn->children_().begin(); it != jn->children_().end(); ++it) {
    pv_.emplace_back(it, it->KEY);
@@ -2287,25 +2287,28 @@ bool Json::iterator::searchFwd_(Jnode *jn, const char *lbl, const WalkStep &ws, 
 }
 
 
-
-bool Json::iterator::searchBwd_(Jnode *jn, const char *lbl, const WalkStep &ws, long &i) {
- // search current Jnode tree backwards, return true/false if found,
- // if found ws.back() must contain an iterator to the found node
- if(jn->is_iterable()) {
-  for(auto it = jn->children_().rbegin(); it != jn->children_().rend(); ++it) {
-   pv_.emplace_back(jn->children_().find(it->KEY), it->KEY);
-   if(jn->is_object() and (ws.jsearch == label_match or ws.jsearch == Label_RE_search))
-    if(labelMatch_(it->KEY, ws, i)) return true;
-   if(searchBwd_(&it->VALUE, jn->is_object()? it->KEY.c_str(): nullptr, ws, i)) return true;
-   pv_.pop_back();
-  }
+bool Json::iterator::searchChild_(Jnode *jn, const char *lbl, const WalkStep &ws, long &i) {
+ // search current iterable Jnode immediate children, return true/false if found,
+ // if found pv_.back() must contain an iterator to the found node
+ if(not jn->is_iterable())                                      // only iterables have children
   return false;
- }
- // it's not a iterable
- if(not match_(jn, lbl, ws)) return false;
- return --i < 0? true: false;
-}
 
+ for(auto it = jn->children_().begin(); it != jn->children_().end(); ++it) {
+  if(jn->is_object() and (ws.jsearch == label_match or ws.jsearch == Label_RE_search)) {
+   if(labelMatch_(it->KEY, ws, i)) {
+    pv_.emplace_back(jn->children_().find(it->KEY), it->KEY);
+    return true;
+   }
+   continue;
+  }
+  if(it->VALUE.is_atomic())                                     // try to match str/num/bool/null
+   if(match_(&it->VALUE, it->KEY.c_str(), ws) and --i < 0) {
+    pv_.emplace_back(jn->children_().find(it->KEY), it->KEY);
+    return true;
+   }
+ }
+ return false;
+}
 
 
 bool Json::iterator::labelMatch_(const std::string &lbl, const WalkStep &ws, long &i) const {
@@ -2372,7 +2375,6 @@ bool Json::iterator::bullMatch_(const Jnode *jn, const char *lbl, const WalkStep
         throw json_().EXP(Jnode::walk_a_bug);                   // covering compiler's warning
  }
 }
-
 
 
 bool Json::iterator::increment(void) {
