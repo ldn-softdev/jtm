@@ -1,12 +1,13 @@
-# jtm - HTML to JSON converter
+# jtm - HTML/XML to JSON converter
 
-#### A simple tool offering quick lossless HTML to JSON conversion
+#### A simple tool offering quick lossless HTML/XML to JSON conversion
 
 the tool offers following behaviors:
 - HTML tags semantic unaware - convertor does not keep track or different tags meanings,
  except few tag:
-  * separately parses `<script>` tag, which requires no tag value interpolation
   * separately parses `<!...>` tags, which do not not contain attributes
+  * separately parses `<?...>` tags and their attributes
+  * separately parses `<script>` tag, which requires no tag value interpolation
   * empty tags (those which do not have a closing pair: either self closed, e.g:
 `<img .../>`, or specially defined like `<br>`) are not tracked, instead following parsing
 logic applied:
@@ -100,10 +101,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.02)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.02)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.02)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v1.02)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.03)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.03)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.03)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v1.03)
 
 
 #### Compile and install instructions:
