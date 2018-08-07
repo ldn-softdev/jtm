@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "1.02"
+#define VERSION "1.03"
 
 
 #define OPT_RDT -
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
  CommonResource r;
  REVEAL(r, opt, html, conv, DBG())
 
- opt.prolog("\nHTML to JSON lossless convertor. Version " VERSION \
+ opt.prolog("\nHTML?XML to JSON lossless convertor. Version " VERSION \
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
  opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
  opt[CHR(OPT_ELB)].desc("label used for extra text in tags (i.e. non-attributes)")
@@ -73,9 +73,10 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_VLB)].desc("label used for tag values")
                   .bind(conv.value_label().c_str()).name("label");
  opt[0].desc("file to read html from").name("html_src").bind("<stdin>");
- opt.epilog("\nthe tool is html tag agnostic, though provides separate behaviors:\n\
- - understand and parse tag <!...>\n\
+ opt.epilog("\nthe tool is html tag semantic agnostic, though provides separate behaviors:\n\
  - parse tag attributes\n\
+ - understand and parse tag <!...>\n\
+ - understand and parse tag <?...>\n\
  - <script> tag value is not interpolated\n");
 
  // parse options

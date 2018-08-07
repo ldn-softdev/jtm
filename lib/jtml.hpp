@@ -1,16 +1,17 @@
 /*
  * Created by Dmitry Lyssenko, last modified July 26, 2018.
  *
- * html tags agnostic, lossless html to json converter with a trivial user interface
+ * html/xml tags agnostic, lossless html/xml to json converter with a trivial user interface
  *
  * This class does not keep track of HTML list for empty tags (some are and some
  * are not), instead it relies on a parsing rule:
  *  - if tag's value is getting closed by another tag, it means that my tag (if
- *    not marked explicitly) is an empty tag
+ *    not marked explicitly) is an empty tag (i.e. a tag w/o value)
  *
  * This parser though understands and parses properly:
  *  - attributes within tags,
  *  - parses separately tags starting with <!...
+ *  - parses separately tags starting with <?...
  *  - value of <script> tags is not interpolated (i.e not parsed)
  *
  * Conversion rule:
@@ -93,22 +94,23 @@
  *
  *
  * Tag values interpolation logic:
- * 1. extract tag-name (name, end of tag, end of name)
+ * 1. extract tag-name (name, end of tag, end of tag-name)
  * 2. tag is self-closed?
  *    - yes: add children - attributes (if any), return resulting JSON object.
  * 3. parse value, facing a new tag?
  *    - yes: parsed so far value empty? ignore: otherwise merge with label "~value"
  *    - closing tag == my tag? return JSON object.
  *    - closing tag != my tag?  // means my tag is an empty tag
- *      yes: return [ { mytag: parsed_my_tag_attr }, parsed_value, closing_tag ]
- *      no, another open tag: parse_tag()
- *    - returned object? yes: add obj to "~value", keep parsing
- *      otherwise: last value of array == mytag?
- *                 - yes: pop last value from array,
- *                        merge array with content, return JSON object
- *                 - no:  //array != mytag: my tag is an empty tag
- *                   make [ {mytag: parsed_my_tag_w/o_value}, my_parsed value ],
- *                   merge my array with returned array, return Json array
+ *          yes: return [ { mytag: parsed_my_tag_attr }, parsed_value, closing_tag ]
+ *          no, another open tag: parse_tag()
+ *    - returned object? // if no, then it's an array
+ *          yes: add obj to "~value", keep parsing
+ *          otherwise: last value of array == mytag?
+ *                      - yes: pop last value from array,
+ *                             merge array with content, return JSON object
+ *                      - no: //array != mytag: my tag is an empty tag
+ *                            make [ {mytag: parsed_my_tag_w/o_value}, my_parsed value ],
+ *                            merge my array with returned array, return Json array
  */
 
 
@@ -150,7 +152,7 @@ class Jtml {
                 expect_tag_opening, \
                 white_space_before_tag_name, \
                 unexpected_closing_tag, \
-                premature_end_of_html, \
+                premature_end_of_file, \
                 empty_self_closed_not_allowed, \
                 unexpected_input_after_self_closing, \
                 empty_assignment_in_attributes, \
@@ -350,9 +352,16 @@ Json Jtml::parseTag_(const_sit & si) const {
  std::string tagname{ extractTag_(si, end_of_tag) };            // *si: ...|>|
  DBG(1) DOUT() << "extracted tag: <" << tagname << ">" << std::endl;
 
- if(tagname == "!") {
+ if(tagname == "!") {                                           // html header
   DBG(1) DOUT() << "<!> content: '" << std::string{ end_of_tag, si } << "'" << std::endl;
   return OBJ { LBL { "!", STR{ quote_str(std::string{ end_of_tag, si++ }) } } };
+ }
+ if(tagname.front() == '?') {                                   // xml header
+  DBG(1) 
+   DOUT() << "XML prolog tag content: '" << std::string{ end_of_tag, si } << "'" << std::endl;
+  Json j{ OBJ{ LBL { tagname, NUL{} } } };
+  parseAttributes_(j, std::string{end_of_tag, si++});
+  return j;
  }
  if(tagname.front() == '/')                                     // closing tag, unexpected
   throw EXP(unexpected_closing_tag);
@@ -419,7 +428,7 @@ bool Jtml::parseAttributes_(Json &j, std::string && attr) const {
    throw EXP(empty_assignment_in_attributes);
 
   if(*si == '\0') {                                             // some value w/o attributes
-   mergeContent_(j, OBJ{ LBL{ extra_label(), STR{quote_str(attribute)} } } );
+   j[0][extra_label()] = STR{quote_str(attribute)};             // add into "~extra" label
    return false;
   }
 
@@ -479,7 +488,7 @@ void Jtml::parseContent_(Json &j, const_sit & si) const {
   }
 
   si = start_it;                                                // it's another tag, interpolate it
-  DBG(2) DOUT() << "parsing nested tag <" << tagname << ">" << std::endl;
+  DBG(1) DOUT() << "parsing nested tag <" << tagname << ">" << std::endl;
   if(interpolateTag_(j, si, mytag) == false) return;
  }
 }
@@ -591,7 +600,7 @@ Jtml::const_sit & Jtml::findAnyOf_(const char *dlm, const_sit &si, bool throw_ex
   ++si;
  }
  if(throw_exp)
-  throw EXP(premature_end_of_html);
+  throw EXP(premature_end_of_file);
  return si;
 }
 
