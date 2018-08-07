@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
  CommonResource r;
  REVEAL(r, opt, html, conv, DBG())
 
- opt.prolog("\nHTML?XML to JSON lossless convertor. Version " VERSION \
+ opt.prolog("\nHTML/XML to JSON lossless convertor. Version " VERSION \
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
  opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
  opt[CHR(OPT_ELB)].desc("label used for extra text in tags (i.e. non-attributes)")
