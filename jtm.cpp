@@ -7,17 +7,17 @@
 
 using namespace std;
 
-#define VERSION "1.03"
+#define VERSION "2.00"
 
 
 #define OPT_RDT -
+#define OPT_ALB a
 #define OPT_DBG d
-#define OPT_ELB e
-#define OPT_ENM n
+#define OPT_TLB t
+#define OPT_ENM e
 #define OPT_RAW r
 #define OPT_SLD s
-#define OPT_RTR t
-#define OPT_VLB v
+#define OPT_RTR n
 
 
 // facilitate option materialization
@@ -64,14 +64,14 @@ int main(int argc, char *argv[]) {
  opt.prolog("\nHTML/XML to JSON lossless convertor. Version " VERSION \
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
  opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
- opt[CHR(OPT_ELB)].desc("label used for extra text in tags (i.e. non-attributes)")
-                  .bind(conv.extra_label().c_str()).name("label");
+ opt[CHR(OPT_TLB)].desc("a label used for trailing text inside tags")
+                  .bind(conv.trail_label().c_str()).name("label");
  opt[CHR(OPT_ENM)].desc("start enlisting tag values from the first entry");
  opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
  opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
- opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o pair");
- opt[CHR(OPT_VLB)].desc("label used for tag values")
-                  .bind(conv.value_label().c_str()).name("label");
+ opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
+ opt[CHR(OPT_ALB)].desc("a label used for attribute values")
+                  .bind(conv.attr_label().c_str()).name("label");
  opt[0].desc("file to read html from").name("html_src").bind("<stdin>");
  opt.epilog("\nthe tool is html tag semantic agnostic, though provides separate behaviors:\n\
  - parse tag attributes\n\
@@ -82,8 +82,8 @@ int main(int argc, char *argv[]) {
  // parse options
  try { opt.parse(argc,argv); }
  catch (stdException & e) { opt.usage(); return e.code() + OFF_GETOPT; }
- conv.value_label(opt[CHR(OPT_VLB)].c_str())
-     .extra_label(opt[CHR(OPT_ELB)].c_str())
+ conv.attr_label(opt[CHR(OPT_ALB)].c_str())
+     .trail_label(opt[CHR(OPT_TLB)].c_str())
      .enumerate(opt[CHR(OPT_ENM)])
      .retry(not opt[CHR(OPT_RTR)])
      .quoted_solidus(opt[CHR(OPT_SLD)]);
