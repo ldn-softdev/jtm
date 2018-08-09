@@ -2,9 +2,13 @@
 
 #### A simple tool offering quick lossless HTML/XML to JSON conversion
 
+- version 2.0 has improved JSON layout (compared to v1.x), so it's easier to parse 
+a resulting JSON
+- command interface switches also changed (to reflect action semantic better)
+
 the tool offers following behaviors:
-- HTML tags semantic unaware - convertor does not keep track or different tags meanings,
- except few tag:
+- HTML/XML tags semantic unaware - convertor does not keep track or tag meaning,
+ however provides following behaviors:
   * separately parses `<!...>` tags, which do not not contain attributes
   * separately parses `<?...>` tags and their attributes
   * separately parses `<script>` tag, which requires no tag value interpolation
@@ -18,11 +22,10 @@ being parsed is an empty tag
 #### Conversion rules:
 
  - each tag is translated into a JSON object, with a single label - name of the tag
- - all attributes go into object pairs *`label:value`*, where:
-    * *`label`* is the attribute name
-    * *`value`* is the attribute value
- - a value of the tag (i.e. everything between opening and closing tag) is going under the
- label `~value` (a default label, could be changed by user)
+ - all attributes go into object with the label  *`attributes`* (a default label, could
+ be changed by user)
+ - a value of the tag (i.e. everything between opening and closing tags) is merged into the
+ tag label
  - empty tags w/o attributes will be set to JSON `null` value
 
 
@@ -51,45 +54,43 @@ being parsed is an empty tag
       "!": "DOCTYPE html"
    },
    {
-      "html": {
-         "~value": [
-            {
-               "head": {
-                  "~value": [
-                     {
-                        "title": {
-                           "~value": "HTML example"
-                        }
-                     },
-                     {
-                        "meta": {
-                           "charset": "utf-8"
-                        }
-                     }
-                  ]
-               }
-            },
-            {
-               "body": {
-                  "text": "green",
-                  "~value": {
-                     "p": {
-                        "~value": [
-                           "Oh Brother,",
-                           {
-                              "br": null
-                           },
-                           "Where Art Thou?",
-                           {
-                              "br": null
-                           }
-                        ]
+      "html": [
+         {
+            "head": [
+               {
+                  "title": "HTML example"
+               },
+               {
+                  "meta": {
+                     "attributes": {
+                        "charset": "utf-8"
                      }
                   }
                }
-            }
-         ]
-      }
+            ]
+         },
+         {
+            "body": [
+               {
+                  "attributes": {
+                     "text": "green"
+                  }
+               },
+               {
+                  "p": [
+                     "Oh Brother,",
+                     {
+                        "br": null
+                     },
+                     "Where Art Thou?",
+                     {
+                        "br": null
+                     }
+                  ]
+               }
+            ]
+         }
+      ]
    }
 ]
 ```
@@ -101,10 +102,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v1.03)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v1.03)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v1.03)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v1.03)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.00)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.00)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.00)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.00)
 
 
 #### Compile and install instructions:
@@ -123,32 +124,33 @@ folder:
 #### help screen:
 ```
 bash $ jtm -h
-usage: jtm [-d] [-h] [-n] [-r] [-s] [-t] [-e label] [-v label] [html_src]
+usage: jtm [-d] [-e] [-h] [-n] [-r] [-s] [-a label] [-t label] [html_src]
 
-HTML to JSON lossless convertor. Version 1.01, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+HTML/XML to JSON lossless convertor. Version 2.00, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
+ -e             start enlisting tag values from the first entry
  -h             help screen
- -n             start enlisting tag values from the first entry
+ -n             do not retry parsing upon facing a closing tag w/o its pair
  -r             force printing json in a raw format
  -s             enforce quoted solidus behavior
- -t             do not retry parsing upon facing a closing tag w/o pair
- -e label       label used for extra text in tags (i.e. non-attributes) [default: ~extra]
- -v label       label used for tag values [default: ~value]
+ -a label       a label used for attribute values [default: attributes]
+ -t label       a label used for trailing text inside tags [default: trailing]
 
 standalone arguments:
   html_src      file to read html from [default: <stdin>]
 
-the tool is html tag agnostic, though provides separate behaviors:
- - understand and parse tag <!...>
+the tool is html tag semantic agnostic, though provides separate behaviors:
  - parse tag attributes
+ - understand and parse tag <!...>
+ - understand and parse tag <?...>
  - <script> tag value is not interpolated
 
 bash $ 
 ```
 
--  Once HTML is converted to JSON, use [jtc](https://github.com/ldn-softdev/jtc) 
+-  Once HTML/XML is converted to JSON, use [jtc](https://github.com/ldn-softdev/jtc) 
 tool to extract / manipulated JSON data
 
 
