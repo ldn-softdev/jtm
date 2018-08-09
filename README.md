@@ -2,7 +2,7 @@
 
 #### A simple tool offering quick lossless HTML/XML to JSON conversion
 
-- version 2.0 has improved JSON layout (compared to v1.x), so it's easier to parse 
+- version 2.0 offers an improved JSON layout (compared to v1.x), so it's easier to parse 
 a resulting JSON
 - command interface switches also changed (to reflect action semantic better)
 
