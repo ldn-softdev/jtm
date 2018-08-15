@@ -102,10 +102,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.00)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.00)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.00)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.00)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.01)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.01)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.01)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.01)
 
 
 #### Compile and install instructions:
@@ -126,7 +126,7 @@ folder:
 bash $ jtm -h
 usage: jtm [-d] [-e] [-h] [-n] [-r] [-s] [-a label] [-t label] [html_src]
 
-HTML/XML to JSON lossless convertor. Version 2.00, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+HTML/XML to JSON lossless convertor. Version 2.01, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
@@ -141,10 +141,10 @@ optional arguments:
 standalone arguments:
   html_src      file to read html from [default: <stdin>]
 
-the tool is html tag semantic agnostic, though provides separate behaviors:
- - parse tag attributes
- - understand and parse tag <!...>
- - understand and parse tag <?...>
+the tool is html tag semantic agnostic, though provides isolated parsing for:
+ - parsing of tag attributes
+ - understand and parse tag <!...> w/o parsing attributes
+ - understand and parse tag <?...> with parsing attributes
  - <script> tag value is not interpolated
 
 bash $ 
