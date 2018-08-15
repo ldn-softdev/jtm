@@ -369,6 +369,8 @@ Json Jtml::parseTag_(const_sit & si) const {
  }
  if(tagname.front() == '/')                                     // closing tag, unexpected
   throw EXP(unexpected_closing_tag);
+ if(tagname.back() == '/')                                      // self-closing tag like <br/>
+  { tagname.erase(tagname.size()-1); --end_of_tag; }            // let idle-parse attributes
 
  Json j{ OBJ{ LBL{ tagname, NUL{} } } };                        // parsed tag will go here
  if(end_of_tag != si) {                                         // there could be attributes, parse
@@ -376,9 +378,7 @@ Json Jtml::parseTag_(const_sit & si) const {
    { ++si; return j; }
   // else (not self-closed, i.e. normal tag) - parse content
  }
- else                                                           // no attributes
-  if(tagname.back() == '/')                                     // self-closed, w/o attr.: <br/>
-    { ++si; return j; }
+
  if(npt_.count(tagname) == 1) {                                 // no interpolation (e.g. <script>)
   end_of_tag = ++si;                                            // *end_of_tag: ...>|.|...
   mergeContent_(j, STR{ quote_str(std::string{ end_of_tag, findClosingTag_(tagname, si)}) } );
@@ -440,6 +440,7 @@ Jtml::AttrProperty Jtml::parseAttributes_(Json &j, std::string && attr) const {
   DBG(2) DOUT() << "extracted attribute '" << attribute << "' = '" << value << "'" << std::endl;
   a[attribute] = STR{ quote_str(std::move(value)) };
  }
+ if(att[attr_label()] == OBJ{}) att[attr_label()] = NUL{};
  j.front() = std::move(enumerate()? enlist_(att): att.root());
  return aprop;
 }

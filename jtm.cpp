@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.00"
+#define VERSION "2.01"
 
 
 #define OPT_RDT -
@@ -29,6 +29,7 @@ using namespace std;
 
 #define RETURN_CODES \
         RC_OK, \
+        RC_EMPTY, \
         RC_END
 ENUM(ReturnCodes, RETURN_CODES)
 
@@ -73,10 +74,10 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_ALB)].desc("a label used for attribute values")
                   .bind(conv.attr_label().c_str()).name("label");
  opt[0].desc("file to read html from").name("html_src").bind("<stdin>");
- opt.epilog("\nthe tool is html tag semantic agnostic, though provides separate behaviors:\n\
- - parse tag attributes\n\
- - understand and parse tag <!...>\n\
- - understand and parse tag <?...>\n\
+ opt.epilog("\nthe tool is html tag semantic agnostic, though provides isolated parsing for:\n\
+ - parsing of tag attributes\n\
+ - understand and parse tag <!...> w/o parsing attributes\n\
+ - understand and parse tag <?...> with parsing attributes\n\
  - <script> tag value is not interpolated\n");
 
  // parse options
@@ -92,10 +93,12 @@ int main(int argc, char *argv[]) {
       .use_ostream(cerr)
       .severity(conv);
 
- html = read_html(r);
 
  try{
-  cout << conv.jsonize(html).raw(opt[CHR(OPT_RAW)]) << endl;
+  html = read_html(r);
+  conv.jsonize(html);
+  if(conv.json() == ARY{}) return RC_EMPTY;
+  cout << conv.json().raw(opt[CHR(OPT_RAW)]) << endl;
  }
  catch( stdException & e ) {
   cerr << opt.prog_name() << " exception: " << e.what() << endl;
