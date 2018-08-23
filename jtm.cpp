@@ -143,7 +143,7 @@ void try_reversing(CommonResource &r) {
 
  try {
   Json j;
-  cout << conv.reinstate(j.parse(src_str));
+  cout << conv.reinstate(j.parse(src_str)) << endl;
   exit(RC_OK);
  }
  catch(stdException & e)
