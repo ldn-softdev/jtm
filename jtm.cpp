@@ -7,17 +7,19 @@
 
 using namespace std;
 
-#define VERSION "2.01"
+#define VERSION "2.03"
 
 
 #define OPT_RDT -
 #define OPT_ALB a
 #define OPT_DBG d
-#define OPT_TLB t
 #define OPT_ENM e
+#define OPT_DGT f
+#define OPT_IND i
+#define OPT_RTR n
 #define OPT_RAW r
 #define OPT_SLD s
-#define OPT_RTR n
+#define OPT_TLB t
 
 
 // facilitate option materialization
@@ -34,13 +36,13 @@ using namespace std;
 ENUM(ReturnCodes, RETURN_CODES)
 
 #define OFF_GETOPT RC_END                                       // offset for Getopt exceptions
-#define OFF_JTML (OFF_GETOPT + Getopt::end_of_trhow)            // offset for Jtml exceptions
-#define OFF_REGEX (OFF_JTML + Jtml::end_of_trhow)               // offset for Regex exceptions
+#define OFF_JTML (OFF_GETOPT + Getopt::end_of_throw)            // offset for Jtml exceptions
+#define OFF_REGEX (OFF_JTML + Jtml::end_of_throw)               // offset for Regex exceptions
 
 
 struct CommonResource {
     Getopt              opt;
-    string              html;
+    string              src_str;
     Jtml                conv;
     DEBUGGABLE()
 };
@@ -53,32 +55,44 @@ struct CommonResource {
 
 
 // forward declarations
-string read_html(CommonResource &);
+void try_reversing(CommonResource &);
+string read_source(CommonResource &);
 
 
 
 int main(int argc, char *argv[]) {
 
  CommonResource r;
- REVEAL(r, opt, html, conv, DBG())
+ REVEAL(r, opt, src_str, conv, DBG())
 
- opt.prolog("\nHTML/XML to JSON lossless convertor. Version " VERSION \
+ opt.prolog("\nHTML/XML to JSON and back lossless convertor. Version " VERSION \
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
- opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
- opt[CHR(OPT_TLB)].desc("a label used for trailing text inside tags")
-                  .bind(conv.trail_label().c_str()).name("label");
- opt[CHR(OPT_ENM)].desc("start enlisting tag values from the first entry");
- opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
- opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
- opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
  opt[CHR(OPT_ALB)].desc("a label used for attribute values")
                   .bind(conv.attr_label().c_str()).name("label");
- opt[0].desc("file to read html from").name("html_src").bind("<stdin>");
- opt.epilog("\nthe tool is html tag semantic agnostic, though provides isolated parsing for:\n\
- - parsing of tag attributes\n\
- - understand and parse tag <!...> w/o parsing attributes\n\
- - understand and parse tag <?...> with parsing attributes\n\
- - <script> tag value is not interpolated\n");
+ opt[CHR(OPT_DBG)].desc("turn on debugs (multiple calls increase verbosity)");
+ opt[CHR(OPT_ENM)].desc("enlist even single values (otherwise don't)");
+ opt[CHR(OPT_DGT)].desc("digitize all numerical strings");
+ opt[CHR(OPT_IND)].desc("indent for pretty printing").bind("3").name("indent");
+ opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
+ opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
+ opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
+ opt[CHR(OPT_TLB)].desc("a label used for trailing text inside tags")
+                  .bind(conv.trail_label().c_str()).name("label");
+ opt[0].desc("file to read source from").name("src_file").bind("<stdin>");
+ opt.epilog("\nthe tool is html/xml tag semantic agnostic, follows conversion specification:\n\
+  <tag> </tag>                <-> { \"tag\": [] }\n\
+  <tag> ... </tag>            <-> { \"tag\": [ <...> ] }\n\
+  <tag attributes> </tag>     <-> { \"tag\": [ { <attributes> } ] }\n\
+  <tag attributes> ... </tag> <-> { \"tag\": [ { <attributes> }, <...> ] }\n\
+  <self_closed attributes />  <-> { \"self_closed/\": { <attributes> } }\n\
+  <self_closed/>              <-> { \"self_closed/\": null }\n\
+  <empty_tag attributes>      <-> { \"empty_tag\": { <attributes> } }\n\
+  <empty_tag>                 <-> { \"empty_tag\": null }\n\
+  <!...>                      <-> { \"!\": <...> }\n\
+  <?tag attributes>           <-> { \"?tag\": { <attributes> } }\n\
+  <?tag>                      <-> { \"?tag\": null }\n\
+if a tag enlists a single value then optionally it could be de-listed (default\n\
+behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
  // parse options
  try { opt.parse(argc,argv); }
@@ -86,7 +100,9 @@ int main(int argc, char *argv[]) {
  conv.attr_label(opt[CHR(OPT_ALB)].c_str())
      .trail_label(opt[CHR(OPT_TLB)].c_str())
      .enumerate(opt[CHR(OPT_ENM)])
+     .digitize(opt[CHR(OPT_DGT)])
      .retry(not opt[CHR(OPT_RTR)])
+     .tab(opt[CHR(OPT_IND)])
      .quoted_solidus(opt[CHR(OPT_SLD)]);
 
  DBG().level(opt[CHR(OPT_DBG)])
@@ -94,11 +110,16 @@ int main(int argc, char *argv[]) {
       .severity(conv);
 
 
- try{
-  html = read_html(r);
-  conv.jsonize(html);
+ try {
+  src_str = read_source(r);
+  
+  // see if source is JSON first
+  try_reversing(r);
+
+  // it's not json, them must be html/xml
+  conv.jsonize(src_str);
   if(conv.json() == ARY{}) return RC_EMPTY;
-  cout << conv.json().raw(opt[CHR(OPT_RAW)]) << endl;
+  cout << conv.json().tab(opt[CHR(OPT_IND)]).raw(opt[CHR(OPT_RAW)]) << endl;
  }
  catch( stdException & e ) {
   cerr << opt.prog_name() << " exception: " << e.what() << endl;
@@ -116,19 +137,40 @@ int main(int argc, char *argv[]) {
 
 
 
-string read_html(CommonResource &r) {
- // read and html string
+void try_reversing(CommonResource &r) {
+ // try reinstate original XML/HTML from JSON
+ REVEAL(r, conv, src_str)
+
+ try {
+  Json j;
+  cout << conv.reinstate(j.parse(src_str));
+  exit(RC_OK);
+ }
+ catch(stdException & e)
+  { if(e.code() != Jnode::expected_json_value) throw e; }
+}
+
+
+
+
+
+string read_source(CommonResource &r) {
+ // read and src_str string
  REVEAL(r, opt, DBG())
 
  bool redirect{ opt[CHR(OPT_RDT)].hits() != 0 or opt[0].hits() == 0 };
  DBG(0)
-  DOUT() << "reading html from: " << (redirect? "<stdin>": opt[0].c_str()) <<endl;
+  DOUT() << "reading source from: " << (redirect? "<stdin>": opt[0].c_str()) <<endl;
 
  return string{istream_iterator<char>(redirect?
                                       cin>>noskipws: 
                                       ifstream{opt[0].c_str(), ifstream::in}>>noskipws),
                istream_iterator<char>{}};
 }
+
+
+
+
 
 
 

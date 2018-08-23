@@ -11,7 +11,7 @@
  *     JSON tree: NUL, BUL, NUM, STR, ARY, LBL, OBJ
  *
  *  Synopsis:
- *      Json json {NUL{}};      // or: Json json{nullptr};
+ *      Json json {NUL{}};      // or: Json json = {nullptr};
  *      json = BUL{true};       // or: json = {true};
  *      json = NUM{3.14};       // or: json = {3.14};
  *      json = STR{"string"};   // or: json = {"string"};
@@ -557,7 +557,7 @@ class Jnode {
                 type_non_iterable, \
                 expected_string_type, \
                 expected_number_type, \
-                expected_bool_type, \
+                expected_boolean_type, \
                 expected_object_type, \
                 expected_array_type, \
                 expected_atomic_type, \
@@ -589,7 +589,7 @@ class Jnode {
                 walk_bad_position, \
                 root_not_convertable_to_iterator, \
                 walk_a_bug, \
-                end_of_trhow
+                end_of_throw
     ENUMSTR(ThrowReason, THROWREASON)
 
     #define JTYPE \
@@ -661,8 +661,30 @@ class Jnode {
                                    >::type * = nullptr):
                          type_{Null} {}
 
+
+                        // JSON atomic type adapters:
+                        operator const std::string & (void) const {
+                         if(not is_string()) throw EXP(expected_string_type);
+                         return str();
+                        }
+
+                        template<typename T>
+                        operator typename std::enable_if<std::is_floating_point<T>::value,
+                                                         double>::type (void) const {
+                         if(not is_number()) throw EXP(expected_number_type);
+                         return num();
+                        }
+
+                        template<typename T>
+                        operator typename std::enable_if<std::is_same<T, bool>::value,
+                                                         bool>::type (void) const {
+                         if(not is_bool()) throw EXP(expected_boolean_type);
+                         return bul();
+                        }
+
                         // class interface:
     Jtype               type(void) const { return value().type_; }
+    Jtype &             type(void) { return value().type_; }
     bool                is_object(void) const { return type() == Object; }
     bool                is_array(void) const { return type() == Array; }
     bool                is_string(void) const { return type() == String; }
@@ -718,9 +740,29 @@ class Jnode {
                          return children_().begin()->second;
                         }
 
+    const Jnode &       front(void) const {
+                         if(not is_iterable()) throw EXP(type_non_iterable);
+                         return children_().begin()->second;
+                        }
+
+    const std::string & front_label(void) const {
+                         if(not is_object()) throw EXP(expected_object_type);
+                         return children_().begin()->first;
+                        }
+
     Jnode &             back(void) {
                          if(not is_iterable()) throw EXP(type_non_iterable);
                          return children_().rbegin()->second;
+                        }
+
+    const Jnode &       back(void) const {
+                         if(not is_iterable()) throw EXP(type_non_iterable);
+                         return children_().rbegin()->second;
+                        }
+
+    const std::string & back_label(void) const {
+                         if(not is_object()) throw EXP(expected_object_type);
+                         return children_().rbegin()->first;
                         }
 
     bool                operator==(const Jnode &jn) const {
@@ -743,7 +785,7 @@ class Jnode {
                         }
 
     bool                bul(void) const {
-                         if(not is_bool()) throw EXP(expected_bool_type);
+                         if(not is_bool()) throw EXP(expected_boolean_type);
                          return value().value_.front() == CHR_TRUE;
                         }
 
@@ -838,8 +880,12 @@ class Jnode {
     bool                is_pretty(void) const { return endl_ == PRINT_PRT; }
     Jnode &             pretty(bool x=true)
                          { endl_ = x? PRINT_PRT: PRINT_RAW; return *this; }
+    const Jnode &       pretty(bool x=true) const
+                         { endl_ = x? PRINT_PRT: PRINT_RAW; return *this; }
     bool                is_raw(void) const { return endl_ == PRINT_RAW; }
     Jnode &             raw(bool x=true)
+                         { endl_ = x? PRINT_RAW: PRINT_PRT; return *this; }
+    const Jnode &       raw(bool x=true) const
                          { endl_ = x? PRINT_RAW: PRINT_PRT; return *this; }
     uint8_t             tab(void) const { return tab_; }
     Jnode &             tab(uint8_t n) { tab_ = n; return *this; }
@@ -1282,7 +1328,7 @@ class Json{
                         exception_point(void) { return ep_; }
     Json &              parse(const std::string & jstr);
     class iterator;
-    iterator            walk(const std::string & wstr);
+    iterator            walk(const std::string & wstr = "");
 
     // relayed Jnode interface
     Jnode::Jtype        type(void) const { return root().type(); }
@@ -1304,7 +1350,11 @@ class Json{
     Jnode &             operator[](const std::string & l) { return root()[l]; }
     const Jnode &       operator[](const std::string & l) const { return root()[l]; }
     Jnode &             front(void) { return root().front(); }
+    const Jnode &       front(void) const { return root().front(); }
+    const std::string & front_label(void) const { return root().front_label(); }
     Jnode &             back(void) { return root().back(); }
+    const Jnode &       back(void) const { return root().back(); }
+    const std::string & back_label(void) const { return root().back_label(); }
     bool                operator==(const Json &j) const { return root() == j.root(); }
     bool                operator!=(const Json &j) const { return root() != j.root(); }
     bool                operator==(const Jnode &j) const { return root() == j; }
@@ -1346,8 +1396,10 @@ class Json{
 
     bool                is_pretty(void) const { return root().is_pretty(); }
     Json &              pretty(bool x=true) { root().pretty(x); return *this; }
+    const Json &        pretty(bool x=true) const { root().pretty(x); return *this; }
     bool                is_raw(void) const { return root().is_raw(); }
     Json &              raw(bool x=true) { root().raw(x); return *this; }
+    const Json &        raw(bool x=true) const { root().raw(x); return *this; }
     uint8_t             tab(void) const { return root().tab(); }
     Json &              tab(uint8_t n) { root().tab(n); return *this; }
     Json &              quoted_solidus(bool x) {
@@ -1358,6 +1410,7 @@ class Json{
 
     //SERDES(root_)                                             // not really needed (so far)
     DEBUGGABLE()
+    static Jnode::Jtype json_number_definition(std::string::const_iterator & jsp);
 
  protected:
     // protected data structures
@@ -1381,7 +1434,6 @@ class Json{
                         findDelimiter_(char c, std::string::const_iterator & jsp);
     std::string::const_iterator &
                         validateNumber_(std::string::const_iterator & jsp);
-    Jnode::Jtype        json_number_definition(std::string::const_iterator & jsp);
 
     typedef std::map<std::string, Jnode>::iterator iter_jn;
     typedef std::map<std::string, Jnode>::const_iterator const_iter_jn;
