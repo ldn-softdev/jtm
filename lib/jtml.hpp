@@ -606,8 +606,9 @@ void Jtml::parseContent_(Jnode &j, const_sit & si) const {
   if(retry() and ignored_(si)) {                                // ignore found tag
    DBG(1) DOUT() << "found a tag at ignored position <" << tagname << ">, skipping" << std::endl;
    start_it = si;                                               // fetch content, tag again
+   if(not content.empty())                                      // if content was actually added
+    j.front().pop_back();                                       // only then remove old content
    content += quote_str(trimTrailingWhiteSpace_( {start_it, findAnyOf_("<", si)} ));
-   j.front().pop_back();                                        // remove old content
    mergeContent_(j, STR{ std::move(content) });
    start_it = si;
    tagname = extractTag_(si, end_it);                           // *si: ...|>|...
