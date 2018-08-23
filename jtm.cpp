@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.03"
+#define VERSION "2.04"
 
 
 #define OPT_RDT -

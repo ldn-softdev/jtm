@@ -822,7 +822,8 @@ class Jnode {
 
     Jnode &             pop_back(void) {
                          if(not is_iterable()) throw EXP(type_non_iterable);
-                         children_().erase(std::prev(children_().end()));
+                         if(not children_().empty())
+                          children_().erase(std::prev(children_().end()));
                          return *this;
                         }
 
@@ -840,7 +841,8 @@ class Jnode {
 
     Jnode &             pop_front(void) {
                          if(not is_iterable()) throw EXP(type_non_iterable);
-                         children_().erase(children_().begin());
+                         if(not children_().empty())
+                          children_().erase(children_().begin());
                          return *this;
                         }
 

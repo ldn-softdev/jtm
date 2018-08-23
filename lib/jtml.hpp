@@ -160,7 +160,8 @@
 
 
 #define DBG_WIDTH 80
-#define CHR_RTRN '\n'
+#define CHR_NLIN '\n'
+#define CHR_RTRN '\r'
 #define TAG_ATTRB_LBL "attributes"                              // default json label for attributes
 #define TAG_TRAIL_LBL "trailing"                                // label for values w/o attribute
 
@@ -288,6 +289,8 @@ class Jtml {
     int                 matchWhiteSpace_(char chr) const
                          { char cs[2] {chr, '\0'}; return matchWhiteSpace_(cs); };
     std::string &       trimTrailingWhiteSpace_(std::string &) const;
+    std::string &       trimTrailingWhiteSpace_(std::string && str) const
+                         { return trimTrailingWhiteSpace_(str); }
     void                dbgoutParsingPoint_(const_sit & si) const;
     void                dbgoutRawJson_(const char * prompt, const Jnode &j) const;
     Jnode &             enlist_(Jnode &) const;
@@ -601,8 +604,14 @@ void Jtml::parseContent_(Jnode &j, const_sit & si) const {
   std::string tagname{ extractTag_(si, end_it) };               // *si: ...|>|...
   ++si;                                                         // *si: ...>|.|..
   if(retry() and ignored_(si)) {                                // ignore found tag
-   DBG(1) DOUT() << "found a tag at ignored position </" << tagname << ">, skipping" << std::endl;
-   continue;
+   DBG(1) DOUT() << "found a tag at ignored position <" << tagname << ">, skipping" << std::endl;
+   start_it = si;                                               // fetch content, tag again
+   content += quote_str(trimTrailingWhiteSpace_( {start_it, findAnyOf_("<", si)} ));
+   j.front().pop_back();                                        // remove old content
+   mergeContent_(j, STR{ std::move(content) });
+   start_it = si;
+   tagname = extractTag_(si, end_it);                           // *si: ...|>|...
+   ++si;
   }
   DBG(1) DOUT() << "found next tag: <" << tagname << "> (my tag: <" << mytag << ">)" << std::endl;
 
@@ -784,7 +793,7 @@ void Jtml::dbgoutParsingPoint_(const_sit & si) const {
 
  bool truncate{ std::strlen(&*si) > (DBG_WIDTH-sizeof(pfx)) };
  std::string str{ si, si + (truncate? DBG_WIDTH - sizeof(pfx) - 3: strlen(&*si)) };
- for(auto &c: str) if(c == CHR_RTRN) c = '|';
+ for(auto &c: str) if(c == CHR_NLIN or c == CHR_RTRN) c = '|';
  DOUT() << pfx << str << (truncate? "...":"") << std::endl;
 }
 
@@ -925,7 +934,7 @@ std::string Jtml::restoreAttributes_(const Jnode &attr) const {
 
 
 #undef DBG_WIDTH
-#undef CHR_RTRN
+#undef CHR_NLIN
 #undef TAG_ATTRB_LBL
 #undef TAG_TRAIL_LBL
 #undef JSN_QUOTE
