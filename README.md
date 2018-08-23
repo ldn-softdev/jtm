@@ -7,16 +7,9 @@ a resulting JSON
 - command interface switches also changed (to reflect action semantic better)
 
 the tool offers following behaviors:
-- HTML/XML tags semantic unaware - convertor does not keep track or tag meaning,
- however provides following behaviors:
-  * separately parses `<!...>` tags, which do not not contain attributes
-  * separately parses `<?...>` tags and their attributes
-  * separately parses `<script>` tag, which requires no tag value interpolation
-  * empty tags (those which do not have a closing pair: either self closed, e.g:
-`<img .../>`, or specially defined like `<br>`) are not tracked, instead following parsing
-logic applied:
-    - if currently parsed tag's value is getting closed by another tag, it means that the tag
-being parsed is an empty tag
+- HTML/XML tags semantic unaware - convertor does not keep track or tag meaning, see conversion specification below
+- converted JSON is possible to reistate back to its original format XML/HTML (thanks to lossless conversion)
+- detects malformed HTML/XML (i.e. closed tags w/o corresponding openning) and automatically fixing it (otpionally could be disabled)
 
 
 #### Conversion rules:
@@ -94,6 +87,21 @@ being parsed is an empty tag
    }
 ]
 ```
+- and recovered from JSON back to HTML:
+```
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>HTML example</title>
+      <meta charset="utf-8">
+   </head>
+   <body text="green">
+      <p>Oh Brother,<br>Where Art Thou?<br>
+      </p>
+   </body>
+</html>
+
+```
 
 #### Linux and MacOS precompiled binaries are available for download
 
@@ -102,10 +110,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.01)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.01)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.01)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.01)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.03)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.03)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.03)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.03)
 
 
 #### Compile and install instructions:
@@ -124,28 +132,39 @@ folder:
 #### help screen:
 ```
 bash $ jtm -h
-usage: jtm [-d] [-e] [-h] [-n] [-r] [-s] [-a label] [-t label] [html_src]
+usage: jtm [-defhnrs] [-a label] [-i indent] [-t label] [src_file]
 
-HTML/XML to JSON lossless convertor. Version 2.01, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+HTML/XML to JSON and back lossless convertor. Version 2.03, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
- -e             start enlisting tag values from the first entry
+ -e             enlist even single values (otherwise don't)
+ -f             digitize all numerical strings
  -h             help screen
  -n             do not retry parsing upon facing a closing tag w/o its pair
  -r             force printing json in a raw format
  -s             enforce quoted solidus behavior
  -a label       a label used for attribute values [default: attributes]
+ -i indent      indent for pretty printing [default: 3]
  -t label       a label used for trailing text inside tags [default: trailing]
 
 standalone arguments:
-  html_src      file to read html from [default: <stdin>]
+  src_file      file to read source from [default: <stdin>]
 
-the tool is html tag semantic agnostic, though provides isolated parsing for:
- - parsing of tag attributes
- - understand and parse tag <!...> w/o parsing attributes
- - understand and parse tag <?...> with parsing attributes
- - <script> tag value is not interpolated
+the tool is html/xml tag semantic agnostic, follows conversion specification:
+  <tag> </tag>                <-> { "tag": [] }
+  <tag> ... </tag>            <-> { "tag": [ <...> ] }
+  <tag attributes> </tag>     <-> { "tag": [ { <attributes> } ] }
+  <tag attributes> ... </tag> <-> { "tag": [ { <attributes> }, <...> ] }
+  <self_closed attributes />  <-> { "self_closed/": { <attributes> } }
+  <self_closed/>              <-> { "self_closed/": null }
+  <empty_tag attributes>      <-> { "empty_tag": { <attributes> } }
+  <empty_tag>                 <-> { "empty_tag": null }
+  <!...>                      <-> { "!": <...> }
+  <?tag attributes>           <-> { "?tag": { <attributes> } }
+  <?tag>                      <-> { "?tag": null }
+if a tag enlists a single value then optionally it could be de-listed (default
+behavior), unless the value is "attributes" - then no delisting occurs
 
 bash $ 
 ```
