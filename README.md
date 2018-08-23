@@ -9,7 +9,7 @@ a resulting JSON
 the tool offers following behaviors:
 - HTML/XML tags semantic unaware - convertor does not keep track or tag meaning, see conversion specification below
 - converted JSON is possible to reistate back to its original format XML/HTML (thanks to lossless conversion)
-- detects malformed HTML/XML (i.e. closed tags w/o corresponding openning) and automatically fixing it (otpionally could be disabled)
+- detects malformed HTML/XML (i.e. closed tags w/o corresponding openning) and automatically fixing it (optionally could be disabled)
 
 
 #### Conversion rules:
