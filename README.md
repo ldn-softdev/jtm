@@ -1,4 +1,4 @@
-# jtm - HTML/XML to JSON converter
+# jtm - lossless HTML/XML to JSON and back converter
 
 #### A simple tool offering quick lossless HTML/XML to JSON conversion
 
