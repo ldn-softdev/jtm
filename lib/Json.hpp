@@ -1471,7 +1471,7 @@ class Json{
                             // stripped[1] -> attached label match (optional)
         std::regex          re;
 
-        const char *        search_type() const { return Jsearch_str[jsearch]; }
+        const char *        search_type() const { return STREN(Jsearch, jsearch); }
         const std::string   label() const { return stripped.size()==2? stripped.back(): "-"; }
         bool                operator<(const WalkStep &r) const {
                             // provided only for SearchCacheKey, which would require to
@@ -1567,7 +1567,7 @@ void Json::parse_(Jnode & node, std::string::const_iterator &jsp) {
  }
 
  if(node.type_ == Jnode::Neither) return;
- DBG(4) DOUT() << "classified as: " << Jnode::Jtype_str[node.type()] << std::endl;
+ DBG(4) DOUT() << "classified as: " << STREN(Jnode::Jtype, node.type()) << std::endl;
 
  switch(node.type()) {
   case Jnode::Object: parseObject_(node, ++jsp); break;         // skip '{' with ++jsp
@@ -2114,7 +2114,7 @@ void Json::parseSuffix_(std::string::const_iterator &si, iterator & it, v_str &r
   lastStep.jsearch = sfx;
   if(sfx == Regex_search or sfx == Label_RE_search or sfx == Ditital_regex)
    lastStep.re = lastStep.stripped.front();
-  DBG(1) DOUT() << "search type sfx: " << Jsearch_str[sfx] << std::endl;
+  DBG(1) DOUT() << "search type sfx: " << STREN(Jsearch, sfx) << std::endl;
 
   if(lastStep.stripped.front().empty())                         // i.e. search is "<>Sfx"
    if(lastStep.jsearch != regular_match and
@@ -2128,7 +2128,7 @@ void Json::parseSuffix_(std::string::const_iterator &si, iterator & it, v_str &r
 Json::Jsearch Json::searchSuffix_(char sfx) const {
  // Jsearch is defined so that its first letter corresponds to the suffix
  for(int i=regular_match; i<end_of_match; ++i)
-  if(sfx == Jsearch_str[i][0])
+  if(sfx == STREN(Jsearch, i)[0])
    return static_cast<Jsearch>(i);
  return end_of_match;                                           // when no match found
 }

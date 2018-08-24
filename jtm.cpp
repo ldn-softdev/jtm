@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.04"
+#define VERSION "2.05"
 
 
 #define OPT_RDT -
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
  opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
  opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
- opt[CHR(OPT_TLB)].desc("a label used for trailing text inside tags")
+ opt[CHR(OPT_TLB)].desc("a label used for trailing text (empty attributes) inside tags")
                   .bind(conv.trail_label().c_str()).name("label");
  opt[0].desc("file to read source from").name("src_file").bind("<stdin>");
  opt.epilog("\nthe tool is html/xml tag semantic agnostic, follows conversion specification:\n\
@@ -122,6 +122,7 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
   cout << conv.json().tab(opt[CHR(OPT_IND)]).raw(opt[CHR(OPT_RAW)]) << endl;
  }
  catch( stdException & e ) {
+  DBG(0) DOUT() << "exception raised by " << e.where() << endl;
   cerr << opt.prog_name() << " exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
@@ -139,15 +140,19 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
 void try_reversing(CommonResource &r) {
  // try reinstate original XML/HTML from JSON
- REVEAL(r, conv, src_str)
+ REVEAL(r, conv, src_str, DBG())
+ DBG(0) DOUT() << "attempt parsing as Json..." << endl;
 
  try {
   Json j;
   cout << conv.reinstate(j.parse(src_str)) << endl;
   exit(RC_OK);
  }
- catch(stdException & e)
-  { if(e.code() != Jnode::expected_json_value) throw e; }
+ catch(stdException & e) { 
+  DBG(0) DOUT() << "exception raised by " << e.where() << endl;
+  if(e.code() != Jnode::expected_json_value) throw e;
+  DBG(0) DOUT() << "source does not appear to be Json, will parse HTML/XML" << endl;
+ }
 }
 
 
@@ -160,7 +165,7 @@ string read_source(CommonResource &r) {
 
  bool redirect{ opt[CHR(OPT_RDT)].hits() != 0 or opt[0].hits() == 0 };
  DBG(0)
-  DOUT() << "reading source from: " << (redirect? "<stdin>": opt[0].c_str()) <<endl;
+  DOUT() << "reading source from: " << (redirect? "<stdin>": opt[0].c_str()) << endl;
 
  return string{istream_iterator<char>(redirect?
                                       cin>>noskipws: 

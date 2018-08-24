@@ -194,6 +194,12 @@ class Jtml {
                 open
     ENUM(AttrProperty, ATTRPROP)
 
+    #define DOCTYPE \
+                undefined, \
+                html, \
+                xml
+    ENUMSTR(Doctype, DOCTYPE)
+
 
     // User interface
     std::string         quote_str(std::string && src) const;
@@ -250,28 +256,29 @@ class Jtml {
 
     std::set<const_sit> itl_;                                   // ignored tag locations
     bool                rt_{true};                              // retry parsing
-  std::set<std::string> npt_{"script"};                         // do not interpolate tags
+    Doctype             dt_{undefined};
+  std::set<std::string> npt_{"script", "style"};                // do not interpolate tags
 
     // methods converting XML/HTML
-    bool                parseable_(const std::string &tag) const
-                         { return npt_.count(tag) == 0; }
+    bool                noParsing_(const std::string &tag) const
+                         { return dt_ == html and npt_.count(tag) == 1; }
     bool                ignored_(const const_sit &it) const
                          { return itl_.count(it) == 1; }
-    Jnode               jsonize_(const_sit & si) const;
+    Jnode               jsonize_(const_sit & si);
     void                postProcessSingles_(Jnode &j) const;
-    Jnode               parseTag_(const_sit & si) const;
-    Jnode               htmlProlog_(const_sit & si, const_sit & et) const;
-    Jnode               xmlProlog_(const std::string &tag, const_sit & si, const_sit & et) const;
+    Jnode               parseTag_(const_sit & si);
+    Jnode               htmlProlog_(const_sit & si, const_sit & et);
+    Jnode               xmlProlog_(const std::string &tag, const_sit & si, const_sit & et);
     const_sit           findClosingTag_(const std::string & tag, const_sit & si) const;
     AttrProperty        parseAttributes_(Jnode &, std::string &&attr) const;
     std::string         parseAttributeValue_(const_sit & si) const;
     void                mergeContent_(Jnode &, Jnode && ) const;
     std::string         extractTag_(const_sit & si, const_sit & end_it) const;
-    void                parseContent_(Jnode &j, const_sit & si) const;
+    void                parseContent_(Jnode &j, const_sit & si);
     void                convertEmptyTag_(Jnode &j) const;
-    Jnode::Jtype        interpolateTag_(Jnode &j, const_sit &si, const std::string &mytag) const;
+    Jnode::Jtype        interpolateTag_(Jnode &j, const_sit &si, const std::string &mytag);
     const_sit &         parseExclamationTag(const_sit& si) const;
-    
+
     // methods restoring original format
     void                restoreArray_(const Jnode &jn, size_t il=0);
     void                restoreObject_(const Jnode &jn, size_t il);
@@ -294,6 +301,8 @@ class Jtml {
     void                dbgoutParsingPoint_(const_sit & si) const;
     void                dbgoutRawJson_(const char * prompt, const Jnode &j) const;
     Jnode &             enlist_(Jnode &) const;
+    std::string         tolower(std::string s)
+                         { std::transform(s.begin(), s.end(), s.begin(), ::tolower); return s; }
     std::string         ind_(size_t x) const {                  // generate indent
                          if(rstr_.back() != '\n') return std::string{};
                          return std::string(tab_*x, ' ');
@@ -306,8 +315,10 @@ class Jtml {
 };
 
 STRINGIFY(Jtml::ThrowReason, THROWREASON)
+STRINGIFY(Jtml::Doctype, DOCTYPE)
 #undef THROWREASON
 #undef ATTRPROP
+#undef DOCTYPE
 
 
 
@@ -403,8 +414,8 @@ const std::string & Jtml::reinstate(const Json &json) {
 
  rstr_.clear();
  restoreArray_(json);
- 
- rstr_.pop_back();                                              // pop trailing '\n' 
+
+ rstr_.pop_back();                                              // pop trailing '\n'
  return rstr_;
 }
 
@@ -433,7 +444,7 @@ void Jtml::postProcessSingles_(Jnode &j) const {
 
 
 
-Jnode Jtml::jsonize_(const_sit & si) const {
+Jnode Jtml::jsonize_(const_sit & si) {
  // wrapper for parseTag - where actual jsonization happens
  // expected *si start/end: |<|... / ...>|.|..
  DBG(0) DOUT() << "begin parsing tag block" << std::endl;
@@ -446,7 +457,7 @@ Jnode Jtml::jsonize_(const_sit & si) const {
 
 
 
-Jnode Jtml::parseTag_(const_sit & si) const {
+Jnode Jtml::parseTag_(const_sit & si) {
  // 1. extract tag (expect opening tags only here)
  // 2. tag is self-closed? - add children, return json object
  // 3. else: parse tag content (value)
@@ -478,11 +489,12 @@ Jnode Jtml::parseTag_(const_sit & si) const {
    j.front().push_back( std::move(atr) );
  }
 
- if(not parseable_(tagname)) {                                  // no interpolation (e.g. <script>)
+ if(noParsing_(tagname)) {                                      // no interpolation (e.g. <script>)
   if(j.empty())
    j[tagname] = ARY{};                                          // parsed tag will go here
   end_of_tag = ++si;                                            // *end_of_tag: ...>|.|...
-  mergeContent_(j, STR{ quote_str(std::string{ end_of_tag, findClosingTag_(tagname, si) }) });
+  mergeContent_(j.front(), 
+                STR{ quote_str(std::string{ end_of_tag, findClosingTag_(tagname, si) }) });
   return j;
  }
 
@@ -495,19 +507,27 @@ Jnode Jtml::parseTag_(const_sit & si) const {
 
 
 
-Jnode Jtml::htmlProlog_(const_sit & si, const_sit & end_of_tag) const {
+Jnode Jtml::htmlProlog_(const_sit & si, const_sit & end_of_tag) {
  DBG(1) DOUT() << "<!> content: '" << std::string{ end_of_tag, si } << "'" << std::endl;
  Jnode hp;
  hp["!"] = STR{ quote_str(std::string{ end_of_tag, si++ }) };
+ if(dt_ == undefined and tolower(hp["!"]).find("doctype") == 0) {
+  dt_ = html;
+  DBG(1) DOUT() << "document defined as: " << STREN(Doctype, dt_) << std::endl;
+ }
  return hp;
 }
 
 
 
-Jnode Jtml::xmlProlog_(const std::string &tagname, const_sit &si, const_sit &end_of_tag) const {
+Jnode Jtml::xmlProlog_(const std::string &tagname, const_sit &si, const_sit &end_of_tag) {
  DBG(1) DOUT() << "XML prolog content: '" << std::string{ end_of_tag, si } << "'" << std::endl;
  Jnode xp;
  parseAttributes_(xp[tagname], std::string{end_of_tag, si++});
+ if(dt_ == undefined and tolower(tagname) == "?xml") {
+  dt_ = xml;
+  DBG(1) DOUT() << "document defined as: " << STREN(Doctype, dt_) << std::endl;
+ }
  return xp;
 }
 
@@ -519,13 +539,16 @@ Jtml::const_sit Jtml::findClosingTag_(const std::string & tag, const_sit & si) c
  // returned sit: ...|<|/tag>...
  const_sit sit;
  --si;
- do {
-  sit = findAnyOf_("<", ++si);                                  // *si: |<|...
+
+ for(bool tag_found{false}; not tag_found;) {
+  tag_found = false;
+  sit = findAnyOf_("<", ++si);                                  // *sit = *si: |<|...
   if(*++sit == '/') {                                           // a closing tag?
    if(strncmp(&*skipWhiteSpace_(++sit), tag.c_str(), tag.size()) == 0)  // is it my closing tag?
     sit += tag.size();
+    tag_found = *skipWhiteSpace_(sit) == '>';
   }
- } while(*skipWhiteSpace_(sit) != '>');
+ }
 
  swap(++sit, si);
  return sit;                                                    // *sit: |<|/tag>; *si: tag>|.|...
@@ -554,18 +577,23 @@ Jtml::AttrProperty Jtml::parseAttributes_(Jnode &j, std::string && attr) const {
    throw EXP(unexpected_input_after_self_closing);              // after '/', like in: <".../blah">
 
   auto start_it = si;                                           // extract attribute name
-  std::string attribute{start_it, findAnyOf_("=", si, false)};
+  std::string attribute{start_it, findAnyOf_("=/ ", si, false)};
   if(trimTrailingWhiteSpace_(attribute).empty())                // e.g. " = some_value"
    throw EXP(empty_assignment_in_attributes);
 
-  if(*si == '\0')                                               // a trailing value w/o attributes
-   { a[trail_label()] = STR{ quote_str(std::move(attribute)) }; break; }
+  if(strchr("/ ", *si) != nullptr) {                            // a trailing value w/o attributes
+   DBG(2) DOUT() << "empty attribute: '" << attribute << "'" << std::endl;
+   a[trail_label()].type() = Jnode::Array;
+   mergeContent_(a[trail_label()], STR{ quote_str(std::move(attribute)) });
+   continue; 
+  }
 
   std::string value{ parseAttributeValue_(++si) };
   DBG(2) DOUT() << "extracted attribute: '" << attribute << "' = '" << value << "'" << std::endl;
   a[attribute] = STR{ quote_str(std::move(value)) };
  }
 
+ DBG(2) dbgoutRawJson_("all attributes: ", a);
  if(a.empty()) j = NUL{};                                       // if no attributes
  return aprop;
 }
@@ -587,7 +615,7 @@ std::string Jtml::parseAttributeValue_(const_sit & si) const {
 
 
 
-void Jtml::parseContent_(Jnode &j, const_sit & si) const {
+void Jtml::parseContent_(Jnode &j, const_sit & si) {
  // parse value between open/close tag pair
  // expected *si start/end: <some_tag>|.|.. / ...<[/]some_tag>|.|..
  // json tag is always expected to be ARY{} type
@@ -598,7 +626,7 @@ void Jtml::parseContent_(Jnode &j, const_sit & si) const {
   start_it = skipWhiteSpace_(si);
   std::string content{ start_it, findAnyOf_("<", si) };         // *si: |<|...
   DBG(1) DOUT() << "extracted content: '" << content << "'" << std::endl;
-  mergeContent_(j, STR{ quote_str(trimTrailingWhiteSpace_(content)) });
+  mergeContent_(j.front(), STR{ quote_str(trimTrailingWhiteSpace_(content)) });
 
   start_it = si;                                                // preserve beginning of a tag '<'
   std::string tagname{ extractTag_(si, end_it) };               // *si: ...|>|...
@@ -609,7 +637,7 @@ void Jtml::parseContent_(Jnode &j, const_sit & si) const {
    if(not content.empty())                                      // if content was actually added
     j.front().pop_back();                                       // only then remove old content
    content += quote_str(trimTrailingWhiteSpace_( {start_it, findAnyOf_("<", si)} ));
-   mergeContent_(j, STR{ std::move(content) });
+   mergeContent_(j.front(), STR{ std::move(content) });
    start_it = si;
    tagname = extractTag_(si, end_it);                           // *si: ...|>|...
    ++si;
@@ -647,14 +675,14 @@ void Jtml::convertEmptyTag_(Jnode &j) const {
 
 
 
-Jnode::Jtype Jtml::interpolateTag_(Jnode &j, const_sit &si, const std::string &mytag) const {
+Jnode::Jtype Jtml::interpolateTag_(Jnode &j, const_sit &si, const std::string &mytag) {
  // return Object or Array after interpolation is done
  // expected *si start/end: |<|sub_tag>... / ...<[/]some_tag>|.|..
  // Json j is expected to come always as an OBJ type
  Jnode subj{ parseTag_(si) };
  if(subj.is_null()) return Jnode::Object;                       // should never be the case though
  if(subj.is_object())                                           // parsed normally - closed tag
-   { mergeContent_(j, std::move(subj)); return Jnode::Object; }
+   { mergeContent_(j.front(), std::move(subj)); return Jnode::Object; }
 
  if(not subj.is_array()) throw EXP(unexpected_json_type);       // now expecting only array type
 
@@ -663,7 +691,7 @@ Jnode::Jtype Jtml::interpolateTag_(Jnode &j, const_sit &si, const std::string &m
  DBG(2)
   DOUT() << "nested closing tag: </" << return_tag << "> (my tag: <" << mytag << ">)" << std::endl;
  if(return_tag == mytag)                                        // my closing tag -> merge array
-  { mergeContent_(j, std::move(subj)); return Jnode::Array; }   // no further processing
+  { mergeContent_(j.front(), std::move(subj)); return Jnode::Array; }   // no further processing
 
  // return_tag != mytag: j must be converted into an array (meaning: j must become an empty tag)
  convertEmptyTag_(j);
@@ -676,21 +704,22 @@ Jnode::Jtype Jtml::interpolateTag_(Jnode &j, const_sit &si, const std::string &m
 
 
 
-void Jtml::mergeContent_(Jnode &json, Jnode && jn) const {
+void Jtml::mergeContent_(Jnode &jvalue, Jnode && jn) const {
  // merge second arg (jn) into first arg (json) value
  if(jn.is_string())
   if(jn.str().empty()) return;                                  // nothing to merge, (empty string)
 
- auto & j = json.front();                                       // value of the tag
+ //auto & j = json.front();                                       // value of the tag
  // j is assumed always to be an array ! (otherwise it's a bug)
  DBG(4) dbgoutRawJson_("content being added: ", jn);
- DBG(5) dbgoutRawJson_("json before merging: ", json);
- if(not jn.is_array())                                         // content is not array type
-  j.push_back( std::move(jn) );
- else                                                          // otherwise - merge into array
+ DBG(5) dbgoutRawJson_("value before merging: ", jvalue);
+ if(not jn.is_array())                                          // content is not array type
+  jvalue.push_back( std::move(jn) );
+ else                                                           // otherwise - merge into array
   for(auto &jnr: jn)
-   j.push_back( std::move(jnr) );
- DBG(5) dbgoutRawJson_("resulting json: ", json);
+   if(jvalue.is_array())
+    jvalue.push_back( std::move(jnr) );
+ DBG(5) dbgoutRawJson_("resulting value: ", jvalue);
 }
 
 
@@ -853,11 +882,19 @@ void Jtml::restoreObject_(const Jnode &jn, size_t il) {
  if(tag == "!") {                                                // <!...> tag
   DBG(2) DOUT() << "- html prolog tag" << std::endl;
   rstr_ += ind_(il) + "<!" + unquote_str(jf.str()) + ">\n";
+  if(dt_ == undefined and tolower(jf.str()).find("doctype") == 0) {
+   dt_ = html;
+   DBG(1) DOUT() << "document source is: " << STREN(Doctype, dt_) << std::endl;
+  }
   return;
  }
 
  if(tag.front() == '?') {                                       // <?xlm...> tag
   DBG(2) DOUT() << "- xml prolog tag" << std::endl;
+  if(dt_ == undefined and tolower(tag) == "?xml") {
+   dt_ = xml;
+   DBG(1) DOUT() << "document source is: " << STREN(Doctype, dt_) << std::endl;
+  }
   rstr_ += ind_(il) + "<" + tag + restoreAttributes_(jf) + ">\n";
   return;
  }
@@ -905,9 +942,9 @@ void Jtml::restoreObject_(const Jnode &jn, size_t il) {
  if(jf.front().is_object() and jf.front().front_label() == attr_label()) // normal tag with attr
   atr = restoreAttributes_(jf.front());
  DBG(2) DOUT() << "- tag pair catering multiple values" << std::endl;
- rstr_ += ind_(il) + "<" + tag + atr + (parseable_(tag)? ">\n": ">"); 
+ rstr_ += ind_(il) + "<" + tag + atr + (noParsing_(tag)? ">": ">\n");
  restoreArray_(jf, il+1);
- rstr_ += (parseable_(tag)? ind_(il): "") + "</" + tag + ">\n";
+ rstr_ += (noParsing_(tag)? "": ind_(il)) + "</" + tag + ">\n";
 }
 
 
@@ -924,8 +961,13 @@ std::string Jtml::restoreAttributes_(const Jnode &attr) const {
   if(a.label() != trail_label())                                // add the trailing part after
    atr += " " + a.label() + "=\"" + unquote_str(a.str()) + "\"";
 
- if(attr[attr_label()].count(trail_label()) == 1)
-   atr += " " + unquote_str(attr[attr_label()][trail_label()]);
+ if(attr[attr_label()].count(trail_label()) == 1) {
+   if(attr[attr_label()][trail_label()].is_array())
+    for(const auto &a: attr[attr_label()][trail_label()])
+     atr += " " + unquote_str(a);    
+   else
+    atr += " " + unquote_str(attr[attr_label()][trail_label()]);
+ }
 
  return atr;
 }
