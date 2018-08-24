@@ -543,11 +543,11 @@ Jtml::const_sit Jtml::findClosingTag_(const std::string & tag, const_sit & si) c
  for(bool tag_found{false}; not tag_found;) {
   tag_found = false;
   sit = findAnyOf_("<", ++si);                                  // *sit = *si: |<|...
-  if(*++sit == '/') {                                           // a closing tag?
-   if(strncmp(&*skipWhiteSpace_(++sit), tag.c_str(), tag.size()) == 0)  // is it my closing tag?
+  if(*++sit == '/')                                             // a closing tag?
+   if(strncmp(&*skipWhiteSpace_(++sit), tag.c_str(), tag.size()) == 0) {// is it my closing tag?
     sit += tag.size();
     tag_found = (*skipWhiteSpace_(sit) == '>');
-  }
+   }
  }
 
  swap(++sit, si);
