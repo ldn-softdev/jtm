@@ -112,7 +112,7 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
  try {
   src_str = read_source(r);
-  
+
   // see if source is JSON first
   try_reversing(r);
 
@@ -148,7 +148,7 @@ void try_reversing(CommonResource &r) {
   cout << conv.reinstate(j.parse(src_str)) << endl;
   exit(RC_OK);
  }
- catch(stdException & e) { 
+ catch(stdException & e) {
   DBG(0) DOUT() << "exception raised by " << e.where() << endl;
   if(e.code() != Jnode::expected_json_value) throw e;
   DBG(0) DOUT() << "source does not appear to be Json, will parse HTML/XML" << endl;
@@ -168,7 +168,7 @@ string read_source(CommonResource &r) {
   DOUT() << "reading source from: " << (redirect? "<stdin>": opt[0].c_str()) << endl;
 
  return string{istream_iterator<char>(redirect?
-                                      cin>>noskipws: 
+                                      cin>>noskipws:
                                       ifstream{opt[0].c_str(), ifstream::in}>>noskipws),
                istream_iterator<char>{}};
 }

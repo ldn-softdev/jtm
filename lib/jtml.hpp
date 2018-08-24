@@ -493,7 +493,7 @@ Jnode Jtml::parseTag_(const_sit & si) {
   if(j.empty())
    j[tagname] = ARY{};                                          // parsed tag will go here
   end_of_tag = ++si;                                            // *end_of_tag: ...>|.|...
-  mergeContent_(j.front(), 
+  mergeContent_(j.front(),
                 STR{ quote_str(std::string{ end_of_tag, findClosingTag_(tagname, si) }) });
   return j;
  }
@@ -546,7 +546,7 @@ Jtml::const_sit Jtml::findClosingTag_(const std::string & tag, const_sit & si) c
   if(*++sit == '/') {                                           // a closing tag?
    if(strncmp(&*skipWhiteSpace_(++sit), tag.c_str(), tag.size()) == 0)  // is it my closing tag?
     sit += tag.size();
-    tag_found = *skipWhiteSpace_(sit) == '>';
+    tag_found = (*skipWhiteSpace_(sit) == '>');
   }
  }
 
@@ -585,7 +585,7 @@ Jtml::AttrProperty Jtml::parseAttributes_(Jnode &j, std::string && attr) const {
    DBG(2) DOUT() << "empty attribute: '" << attribute << "'" << std::endl;
    a[trail_label()].type() = Jnode::Array;
    mergeContent_(a[trail_label()], STR{ quote_str(std::move(attribute)) });
-   continue; 
+   continue;
   }
 
   std::string value{ parseAttributeValue_(++si) };
@@ -964,7 +964,7 @@ std::string Jtml::restoreAttributes_(const Jnode &attr) const {
  if(attr[attr_label()].count(trail_label()) == 1) {
    if(attr[attr_label()][trail_label()].is_array())
     for(const auto &a: attr[attr_label()][trail_label()])
-     atr += " " + unquote_str(a);    
+     atr += " " + unquote_str(a);
    else
     atr += " " + unquote_str(attr[attr_label()][trail_label()]);
  }
