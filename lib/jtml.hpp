@@ -322,7 +322,6 @@ STRINGIFY(Jtml::Doctype, DOCTYPE)
 
 
 
-
 std::string Jtml::quote_str(std::string && src) const {
  // quote source string as per JSON quotation
  std::stringstream ss;
