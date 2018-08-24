@@ -209,7 +209,7 @@ class Jtml {
     std::string         unquote_str(const std::string & str) const
                          { std::string src{str}; return unquote_str(std::move(src)); }
 
-    Json &              jsonize(const std::string &html);
+    Json &              jsonize(const std::string &src);
     Json &              json(void) { return json_; };
     const std::string & reinstate(const Json &json);
     const std::string & reinstated(void) const { return rstr_; };
@@ -377,20 +377,20 @@ std::string Jtml::unquote_str(std::string && src) const {
 
 
 
-Json & Jtml::jsonize(const std::string &html) {
- // parse input html string into json
+Json & Jtml::jsonize(const std::string &src) {
+ // parse input source string into json
  json_ = ARY{};
- const_sit si{ html.cbegin() };                                 // input string iterator
+ const_sit si{ src.cbegin() };                                  // input string iterator
 
  while(*si != '\0') {
   json_.push_back( jsonize_(si) );                              // actually jsonize here
   if(json_.back().is_array()) {                                 // all good jsons must be objects
    std::cerr << "error: malformed document: tag </" << json_.back().back().str()
-             << "> at " << std::distance(html.cbegin(), si) << " has no opening"
+             << "> at " << std::distance(src.cbegin(), si) << " has no opening"
              << (retry()? ", re-parse ignoring the tag": "" ) << std::endl;
    if(retry()) {
     itl_.insert(si);                                            // add location to ignored
-    si = html.cbegin();                                         // reinstate string iterator
+    si = src.cbegin();                                          // reinstate string iterator
     json_.clear();                                              // clean up json
     continue;                                                   // and start over
    }
@@ -578,6 +578,7 @@ Jtml::AttrProperty Jtml::parseAttributes_(Jnode &j, std::string && attr) const {
 
   auto start_it = si;                                           // extract attribute name
   std::string attribute{start_it, findAnyOf_("=/ ", si, false)};
+  skipWhiteSpace_(si);
   if(trimTrailingWhiteSpace_(attribute).empty())                // e.g. " = some_value"
    throw EXP(empty_assignment_in_attributes);
 
