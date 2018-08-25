@@ -60,7 +60,7 @@
 #define STRINGIFY(enum_class, enums...) \
   const char * enum_class ## _str[] { MACRO_TO_ARGS(__STR_COMMA_SEPARATED__, enums) };
 
-#define STREN(enum_class, enum_idx) enum_class ## _str[enum_idx]
+#define ENUMS(enum_class, enum_idx) enum_class ## _str[enum_idx]
 
 
 

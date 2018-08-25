@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.05"
+#define VERSION "2.06"
 
 
 #define OPT_RDT -
@@ -19,7 +19,6 @@ using namespace std;
 #define OPT_RTR n
 #define OPT_RAW r
 #define OPT_SLD s
-#define OPT_TLB t
 
 
 // facilitate option materialization
@@ -76,8 +75,6 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
  opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
  opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
- opt[CHR(OPT_TLB)].desc("a label used for trailing text (empty attributes) inside tags")
-                  .bind(conv.trail_label().c_str()).name("label");
  opt[0].desc("file to read source from").name("src_file").bind("<stdin>");
  opt.epilog("\nthe tool is html/xml tag semantic agnostic, follows conversion specification:\n\
   <tag> </tag>                <-> { \"tag\": [] }\n\
@@ -98,7 +95,6 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
  try { opt.parse(argc,argv); }
  catch (stdException & e) { opt.usage(); return e.code() + OFF_GETOPT; }
  conv.attr_label(opt[CHR(OPT_ALB)].c_str())
-     .trail_label(opt[CHR(OPT_TLB)].c_str())
      .enumerate(opt[CHR(OPT_ENM)])
      .digitize(opt[CHR(OPT_DGT)])
      .retry(not opt[CHR(OPT_RTR)])
@@ -149,7 +145,7 @@ void try_reversing(CommonResource &r) {
   exit(RC_OK);
  }
  catch(stdException & e) {
-  DBG(0) DOUT() << "exception raised by " << e.where() << endl;
+  DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
   if(e.code() != Jnode::expected_json_value) throw e;
   DBG(0) DOUT() << "source does not appear to be Json, will parse HTML/XML" << endl;
  }
