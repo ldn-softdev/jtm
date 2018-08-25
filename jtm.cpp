@@ -52,7 +52,6 @@ struct CommonResource {
         MACRO_TO_ARGS(__REFX__, ARGS)
 // usage: REVEAL(cr, opt, DBG())
 
-
 // forward declarations
 void try_reversing(CommonResource &);
 string read_source(CommonResource &);
@@ -64,7 +63,7 @@ int main(int argc, char *argv[]) {
  CommonResource r;
  REVEAL(r, opt, src_str, conv, DBG())
 
- opt.prolog("\nHTML/XML to JSON and back lossless convertor. Version " VERSION \
+ opt.prolog("\nHTML/XML to JSON and back lossless convertor.\nVersion " VERSION \
             ", developed by Dmitry Lyssenko (ldn.softdev@gmail.com)\n");
  opt[CHR(OPT_ALB)].desc("a label used for attribute values")
                   .bind(conv.attr_label().c_str()).name("label");
