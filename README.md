@@ -100,7 +100,6 @@ the tool offers following behaviors:
       </p>
    </body>
 </html>
-
 ```
 
 #### Linux and MacOS precompiled binaries are available for download
@@ -110,10 +109,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.05)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.05)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.05)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.05)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.06)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.06)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.06)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.06)
 
 
 #### Compile and install instructions:
@@ -131,10 +130,11 @@ folder:
 
 #### help screen:
 ```
-bash $ jtm -h
-usage: jtm [-defhnrs] [-a label] [-i indent] [-t label] [src_file]
+bash $ jtm -h 
+usage: jtm [-defhnrs] [-a label] [-i indent] [src_file]
 
-HTML/XML to JSON and back lossless convertor. Version 2.03, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+HTML/XML to JSON and back lossless convertor.
+Version 2.06, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
@@ -146,7 +146,6 @@ optional arguments:
  -s             enforce quoted solidus behavior
  -a label       a label used for attribute values [default: attributes]
  -i indent      indent for pretty printing [default: 3]
- -t label       a label used for trailing text inside tags [default: trailing]
 
 standalone arguments:
   src_file      file to read source from [default: <stdin>]
@@ -172,4 +171,25 @@ bash $
 -  Once HTML/XML is converted to JSON, use [jtc](https://github.com/ldn-softdev/jtc) 
 tool to extract / manipulated JSON data
 
+
+Here's a trivial example how use them together.
+Say, we want to remove from the original html document all specific tags (and their content respecitvely)? 
+Let it be tag `<p>` in the above html sample. The way to it would be like this:
+```
+bash $ jtm sample.html | jtc -w '<p>l+0[-1]' -p | jtm
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>HTML example</title>
+      <meta charset="utf-8">
+   </head>
+   <body text="green">
+   </body>
+</html>
+bahs $ 
+```
+
+As easy as a pie!
+
+ 
 
