@@ -174,7 +174,7 @@ tool to extract / manipulated JSON data
 
 Here's a trivial example how use them together.
 Say, we want to remove from the original html document all specific tags (and their content respecitvely)? 
-Let it be tag `<p>` in the above html sample. The way to it would be like this:
+Let it be tag `<p>` in the above html sample. A simple way to do it would be like this:
 ```
 bash $ jtm sample.html | jtc -w '<p>l+0[-1]' -p | jtm
 <!DOCTYPE html>
