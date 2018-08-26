@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.06"
+#define VERSION "2.07"
 
 
 #define OPT_RDT -
@@ -18,7 +18,7 @@ using namespace std;
 #define OPT_IND i
 #define OPT_RTR n
 #define OPT_RAW r
-#define OPT_SLD s
+#define OPT_SLD q
 
 
 // facilitate option materialization
@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_IND)].desc("indent for pretty printing").bind("3").name("indent");
  opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
  opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
- opt[CHR(OPT_SLD)].desc("enforce quoted solidus behavior");
+ opt[CHR(OPT_SLD)].desc("enforce JSON's quoted solidus behavior");
  opt[0].desc("file to read source from").name("src_file").bind("<stdin>");
  opt.epilog("\nthe tool is html/xml tag semantic agnostic, follows conversion specification:\n\
   <tag> </tag>                <-> { \"tag\": [] }\n\
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   <!...>                      <-> { \"!\": <...> }\n\
   <?tag attributes>           <-> { \"?tag\": { <attributes> } }\n\
   <?tag>                      <-> { \"?tag\": null }\n\
-if a tag enlists a single value then optionally it could be de-listed (default\n\
+- if a tag enlists a single value then optionally it could be de-listed (default\n\
 behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
  // parse options
@@ -98,7 +98,7 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
      .digitize(opt[CHR(OPT_DGT)])
      .retry(not opt[CHR(OPT_RTR)])
      .tab(opt[CHR(OPT_IND)])
-     .quoted_solidus(opt[CHR(OPT_SLD)]);
+     .quote_solidus(opt[CHR(OPT_SLD)]);
 
  DBG().level(opt[CHR(OPT_DBG)])
       .use_ostream(cerr)
@@ -107,17 +107,14 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
  try {
   src_str = read_source(r);
+  try_reversing(r);                                             // see if source is JSON first
 
-  // see if source is JSON first
-  try_reversing(r);
-
-  // it's not json, them must be html/xml
-  conv.jsonize(src_str);
+  conv.jsonize(src_str);                                        // not json, then must be html/xml
   if(conv.json() == ARY{}) return RC_EMPTY;
   cout << conv.json().tab(opt[CHR(OPT_IND)]).raw(opt[CHR(OPT_RAW)]) << endl;
  }
- catch( stdException & e ) {
-  DBG(0) DOUT() << "exception raised by " << e.where() << endl;
+ catch(stdException & e) {
+  DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
   cerr << opt.prog_name() << " exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
@@ -136,17 +133,16 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 void try_reversing(CommonResource &r) {
  // try reinstate original XML/HTML from JSON
  REVEAL(r, conv, src_str, DBG())
- DBG(0) DOUT() << "attempt parsing as Json..." << endl;
+ DBG(0) DOUT() << "attempt parsing as JSON..." << endl;
 
  try {
   Json j;
-  cout << conv.reinstate(j.parse(src_str)) << endl;
+  cout << conv.reinstate( j.quote_solidus(conv.is_solidus_quoted()).parse(src_str) ) << endl;
   exit(RC_OK);
  }
  catch(stdException & e) {
-  DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
   if(e.code() != Jnode::expected_json_value) throw e;
-  DBG(0) DOUT() << "source does not appear to be Json, will parse HTML/XML" << endl;
+  DBG(0) DOUT() << "source does not appear to be JSON, will parse HTML/XML" << endl;
  }
 }
 

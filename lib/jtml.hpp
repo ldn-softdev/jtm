@@ -1,5 +1,5 @@
 /*
- * Created by Dmitry Lyssenko, last modified August 23, 2018.
+ * Created by Dmitry Lyssenko, last modified August 26, 2018.
  *
  * html/xml tags agnostic, lossless html/xml to JSON and back converter with a
  * trivial user interface
@@ -186,6 +186,7 @@ class Jtml {
                 quote_characters_in_attribute_label, \
                 unexpected_empty_tag, \
                 unexpected_json_type, \
+                attribute_label_not_matching, \
                 input_json_is_not_converted, \
                 end_of_throw
     ENUMSTR(ThrowReason, THROWREASON)
@@ -237,9 +238,9 @@ class Jtml {
     bool                digitize(void) const { return dj_; }
     Jtml &              retry(bool x) { rt_ = x; return *this; }
     bool                retry(void) const { return rt_; }
-
-    Jtml &              quoted_solidus(bool x) {
-                         if(x) { jsn_quote_=JSN_QUOTE"/"; jsn_quoted_ = JSN_QUOTED"/"; }
+    bool                is_solidus_quoted(void) const { return jsn_quoted_[0] == '/'; }
+    Jtml &              quote_solidus(bool x) {
+                         if(x) { jsn_quote_="/" JSN_QUOTE; jsn_quoted_ = "/" JSN_QUOTED; }
                          else { jsn_quote_=JSN_QUOTE; jsn_quoted_ = JSN_QUOTED; }
                          return *this;
                         }
@@ -390,6 +391,7 @@ std::string Jtml::unquote_str(std::string && src) const {
 
 Json & Jtml::jsonize(const std::string &src) {
  // parse input source string into json
+ json_.quote_solidus( is_solidus_quoted() );
  json_ = ARY{};
  const_sit si{ src.cbegin() };                                  // input string iterator
 
@@ -480,6 +482,7 @@ Jnode Jtml::parseTag_(const_sit & si) {
  const_sit end_of_tag;                                          // *end_of_tag: <tag| |attr=...>
  std::string tagname{ extractTag_(si, end_of_tag) };            // *si: ...|>|
  DBG(1) DOUT() << "extracted tag: <" << tagname << ">" << std::endl;
+ std::string quoted_tag = quote_str(tagname);
 
  if(tagname == "!") return htmlProlog_(si, end_of_tag);
  if(tagname.front() == '?') return xmlProlog_(tagname, si, end_of_tag);
@@ -494,9 +497,9 @@ Jnode Jtml::parseTag_(const_sit & si) {
  if(end_of_tag != si) {                                         // there could be attributes, parse
   Jnode atr;
   if(parseAttributes_(atr, std::string{end_of_tag, si}) == self_closed)
-   { j[tagname + '/'] = std::move(atr); ++si; return j; }
+   { j[quote_str(tagname + '/')] = std::move(atr); ++si; return j; }
 
-  j[tagname] = ARY{};                                           // else: (not self-closed) - parse
+  j[quoted_tag] = ARY{};                                        // else: (not self-closed) - parse
   if(not atr.is_null())                                         // content then, but first,
    j.front().push_back( std::move(atr) );                       // add parsed attributes
  }
@@ -511,8 +514,8 @@ Jnode Jtml::parseTag_(const_sit & si) {
  }
 
  // not self-closed, process tag content
- if(j[tagname].is_object())                                     // i.e. if no attributes were added
-  j[tagname] = ARY{};                                           // then replace it with [] (array)
+ if(j[quoted_tag].is_object())                                  // i.e. if no attributes were added
+  j[quoted_tag] = ARY{};                                        // then replace it with [] (array)
  parseContent_(j, ++si);
  return j;
 }
@@ -646,7 +649,7 @@ void Jtml::parseContent_(Jnode &j, const_sit & si) {
  // expected *si start/end: <some_tag>|.|.. / ...<[/]some_tag>|.|..
  // json tag is always expected to be ARY{} type
  const_sit start_it, end_it;
- std::string mytag{ j.front_label() };
+ std::string mytag{ unquote_str(j.front_label()) };
 
  do {
   start_it = skipWhiteSpace_(si);
@@ -730,7 +733,6 @@ Jnode::Jtype Jtml::interpolateTag_(Jnode &j, const_sit &si, const std::string &m
 
 
 
-
 void Jtml::mergeContent_(Jnode &jvalue, Jnode && jn) const {
  // merge second arg (jn) into first arg (json) value
  if(jn.is_string())
@@ -746,7 +748,6 @@ void Jtml::mergeContent_(Jnode &jvalue, Jnode && jn) const {
     jvalue.push_back( std::move(jnr) );
  DBG(5) dbgoutRawJson_("resulting value: ", jvalue);
 }
-
 
 
 
@@ -879,7 +880,6 @@ Jnode& Jtml::enlist_(Jnode &j) const {
 //
 void Jtml::restoreArray_(const Jnode &jn, size_t il) {
  // restore elements from ARY{}
-
  for(auto &jr: jn)
   switch(jr.type()) {
    case Jnode::Object:
@@ -902,7 +902,7 @@ void Jtml::restoreArray_(const Jnode &jn, size_t il) {
 void Jtml::restoreObject_(const Jnode &jn, size_t il) {
  // process all object kinds
  const Jnode & jf = jn.front();
- const std::string & tag = jn.front_label();
+ const std::string & tag = unquote_str(jn.front_label());
  DBG(1) DOUT() << "restoring tag <" << tag << ">:" << std::endl;
  if(tag.empty())
   throw EXP(unexpected_empty_tag);
@@ -914,7 +914,7 @@ void Jtml::restoreObject_(const Jnode &jn, size_t il) {
   return restoreXmlTag_(jf, il, tag);
 
  if(tag.back() == '/')                                          // self-closed tag: .../>
-  return restoreSelfClosed_(jf, il, {tag, 0, jn.front_label().size()-1 });
+  return restoreSelfClosed_(jf, il, {tag, 0, tag.size()- 1 });
 
  if(jf.is_null())                                               // empty tag w/o attr
   return restoreNullTag_(il, tag);
@@ -1014,13 +1014,16 @@ std::string Jtml::restoreAttributes_(const Jnode &attr) const {
  DBG(1) dbgoutRawJson_("restoring attributes: ", attr);
 
  if(attr.is_null()) return "";                                  // no attributes
- if(not attr.is_object()) throw EXP(unexpected_json_type);      // reserved "attributes" reused
+ if(not attr.is_object())                                       // expect to be OBJ{} only
+  throw EXP(unexpected_json_type);
+ if(attr.front_label() != attr_label())                         // JSON was produced with -a '...'
+  throw EXP(attribute_label_not_matching);
 
  std::string atr;
  for(auto &a: attr[attr_label()]) {
   atr += " " + a.label();
   if(not a.is_null())
-   atr += "=\"" + (unquote_str(a.str())) + "\"";
+   atr += "=\"" + (unquote_str(a.val())) + "\"";
  }
  return atr;
 }

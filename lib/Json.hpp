@@ -1404,8 +1404,9 @@ class Json{
     const Json &        raw(bool x=true) const { root().raw(x); return *this; }
     uint8_t             tab(void) const { return root().tab(); }
     Json &              tab(uint8_t n) { root().tab(n); return *this; }
-    Json &              quoted_solidus(bool x) {
-                         if(x) { jsn_fbdn_=JSN_FBDN"/"; jsn_qtd_ = JSN_QTD"/"; }
+    bool                is_solidus_quoted(void) const { return jsn_qtd_[0] == '/'; }
+    Json &              quote_solidus(bool quote) {
+                         if(quote) { jsn_fbdn_="/" JSN_FBDN; jsn_qtd_ = "/" JSN_QTD; }
                          else { jsn_fbdn_=JSN_FBDN; jsn_qtd_ = JSN_QTD; }
                          return *this;
                         }
@@ -1514,11 +1515,11 @@ class Json{
 
     // protected data structures
     typedef std::vector<Itl> path_vector;
-    std::map<SearchCacheKey, 
-             std::vector<path_vector>, 
+    std::map<SearchCacheKey,
+             std::vector<path_vector>,
              decltype(&SearchCacheKey::cmp)>
                             sc_{SearchCacheKey::cmp};           // search cache itself
-    lbl_callback            cf_;                                // callback functions 
+    lbl_callback            cf_;                                // callback functions
 
     void                parseOffsetType_(WalkStep & state) const;
     EXCEPTIONS(Jnode::ThrowReason)
@@ -1666,13 +1667,13 @@ void Json::parseObject_(Jnode & node, std::string::const_iterator &jsp) {
 
 std::string::const_iterator & Json::findDelimiter_(char c, std::string::const_iterator & jsp) {
  while(*jsp != c) {
-  if(*jsp == CHR_NULL or *jsp == CHR_RTRN)
-   { ep_ = jsp; throw EXP(Jnode::unexpected_end_of_line); }
-  if(strchr(jsn_fbdn_, *jsp) != nullptr)                              // i.e. found illegal JSON control
+  if(*jsp == CHR_NULL or *jsp == CHR_RTRN)                      // JSON string does not support
+   { ep_ = jsp; throw EXP(Jnode::unexpected_end_of_line); }     // multiline, hence throwing
+  if(strchr(jsn_fbdn_, *jsp) != nullptr)                        // i.e. found illegal JSON control
    { ep_ = jsp; throw EXP(Jnode::unquoted_character); }
   if(*jsp == '\\') {
    ++jsp;                                                       // skip presumably quoted char
-   if(*jsp == CHR_NULL)
+   if(*jsp == CHR_NULL)                                         // found end of string after '\'
     { ep_ = jsp; throw EXP(Jnode::unexpected_end_of_line); }
    if(strchr(jsn_qtd_, *jsp) == nullptr)                        // it's not JSON char quotation
     { ep_ = jsp; throw EXP(Jnode::unexpected_character_escape); }
@@ -2386,14 +2387,14 @@ bool Json::iterator::searchFwd_(Jnode *jn, const char *lbl, const WalkStep &ws, 
 
 
 
-void Json::iterator::callBack_(const std::string &label, const Jnode *jn, 
+void Json::iterator::callBack_(const std::string &label, const Jnode *jn,
                                const std::vector<path_vector> *vpv) {
  if(json_().callbacks().count(label) == 1) {                    // label registered?
   if(vpv != nullptr)
    for(auto &path: vpv->back())
     pv_.push_back(path);                                        // augment path
   cType_() = Jnode::Object;                                     // ensure supernode's correct type
-  json_().cf_[label]( operator*() );                            // call back passing super node 
+  json_().cf_[label]( operator*() );                            // call back passing super node
   if(vpv != nullptr)
    pv_.resize(pv_.size() - vpv->back().size());                 // reinstate path
  }
