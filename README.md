@@ -130,11 +130,11 @@ folder:
 
 #### help screen:
 ```
-bash $ jtm -h 
-usage: jtm [-defhnrs] [-a label] [-i indent] [src_file]
+bash $ jtm -h
+usage: jtm [-defhnqr] [-a label] [-i indent] [src_file]
 
 HTML/XML to JSON and back lossless convertor.
-Version 2.06, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+Version 2.07, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
@@ -142,8 +142,8 @@ optional arguments:
  -f             digitize all numerical strings
  -h             help screen
  -n             do not retry parsing upon facing a closing tag w/o its pair
+ -q             enforce JSON's quoted solidus behavior
  -r             force printing json in a raw format
- -s             enforce quoted solidus behavior
  -a label       a label used for attribute values [default: attributes]
  -i indent      indent for pretty printing [default: 3]
 
@@ -162,7 +162,7 @@ the tool is html/xml tag semantic agnostic, follows conversion specification:
   <!...>                      <-> { "!": <...> }
   <?tag attributes>           <-> { "?tag": { <attributes> } }
   <?tag>                      <-> { "?tag": null }
-if a tag enlists a single value then optionally it could be de-listed (default
+- if a tag enlists a single value then optionally it could be de-listed (default
 behavior), unless the value is "attributes" - then no delisting occurs
 
 bash $ 
