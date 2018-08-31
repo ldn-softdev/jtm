@@ -92,7 +92,7 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
 
  // parse options
  try { opt.parse(argc,argv); }
- catch (stdException & e) { opt.usage(); return e.code() + OFF_GETOPT; }
+ catch(stdException & e) { opt.usage(); return e.code() + OFF_GETOPT; }
  conv.attr_label(opt[CHR(OPT_ALB)].c_str())
      .enumerate(opt[CHR(OPT_ENM)])
      .digitize(opt[CHR(OPT_DGT)])
@@ -118,7 +118,7 @@ behavior), unless the value is \"attributes\" - then no delisting occurs\n");
   cerr << opt.prog_name() << " exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
- catch (std::regex_error & e) {
+ catch(std::regex_error & e) {
   cerr << "regexp exception: " << e.what() << endl;
   return e.code() + OFF_REGEX;
  }
@@ -137,12 +137,14 @@ void try_reversing(CommonResource &r) {
 
  try {
   Json j;
-  cout << conv.reinstate( j.quote_solidus(conv.is_solidus_quoted()).parse(src_str) ) << endl;
+  j.quote_solidus(conv.is_solidus_quoted())
+   .parse(src_str);
+  cout << conv.reinstate(j) << endl;
   exit(RC_OK);
  }
  catch(stdException & e) {
   if(e.code() != Jnode::expected_json_value) throw e;
-  DBG(0) DOUT() << "source does not appear to be JSON, will parse HTML/XML" << endl;
+  DBG(0) DOUT() << "source does not appear to be JSON, parse HTML/XML" << endl;
  }
 }
 

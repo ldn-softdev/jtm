@@ -770,8 +770,8 @@ class Jnode {
                          if(is_iterable()) return children_() == jn.children_();
                          else return val() == jn.val();
                         }
-    bool                operator!=(const Jnode &jn) const { return not operator==(jn); }
 
+    bool                operator!=(const Jnode &jn) const { return not operator==(jn); }
 
                         // access json types (type checked)
     const std::string & str(void) const {
@@ -1270,7 +1270,7 @@ std::ostream & Jnode::print_json_(std::ostream & os, const Jnode & me, int & rl)
 
 std::ostream & Jnode::print_iterables_(std::ostream & os, const Jnode & my, int & rl) {
  // process children in iterables (array or node)
- if(endl_ == PRINT_PRT) ++rl;                                   // if pretty print adjust level
+ if(endl_ == PRINT_PRT) ++rl;                                   // if pretty print - adjust level
 
  for(auto & child: my.children_()) {                            // print all children:
   os << std::string(rl * tab_, ' ');                            // output current indent
@@ -1284,7 +1284,7 @@ std::ostream & Jnode::print_iterables_(std::ostream & os, const Jnode & my, int 
  if(rl > 1) os << std::string((rl-1)*tab_, ' ');                // it would also signify pretty mode
  if(my.is_array()) os << JSN_ARY_CLS;                           // close array, or
  if(my.is_object()) os << JSN_OBJ_CLS;                          // close node (object)
- if(endl_ == PRINT_PRT) --rl;                                   // if pretty print adjust level
+ if(endl_ == PRINT_PRT) --rl;                                   // if pretty print - adjust level
 
  return os;
 }
@@ -1334,6 +1334,7 @@ class Json{
 
     // relayed Jnode interface
     Jnode::Jtype        type(void) const { return root().type(); }
+    Jnode::Jtype &      type(void) { return root().type(); }
     bool                is_object(void) const { return root().is_object(); }
     bool                is_array(void) const { return root().is_array(); }
     bool                is_string(void) const { return root().is_string(); }

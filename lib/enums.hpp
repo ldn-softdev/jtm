@@ -116,15 +116,16 @@ class stdException: public std::exception {
     const char *        msg_{nullptr};
     const char *        func_{nullptr};
     int                 ec_{-1};
-} __Expeption__;
+} __Exception__;
 
 
 // for in-class declaration
 #define EXCEPTIONS(THROW_ENUM) \
     stdException & __exp__(THROW_ENUM reason, const char *where) const \
-        { return __Expeption__(reason, THROW_ENUM ## _str[reason], where); }
+        { return __Exception__(reason, THROW_ENUM ## _str[reason], where); }
 
 
+// for in-place throw parameter
 #define EXP(TROW_REASON) __exp__(TROW_REASON, __PRETTY_FUNCTION__)
 
 
