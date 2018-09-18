@@ -109,10 +109,10 @@ For compiling c++14 (or later) is required:
   - To compile under Linux, use cli: `c++ -o jtm -Wall -std=gnu++14 -static -Ofast jtm.cpp`
 
 or download latest precompiled binary:
-- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.07)
-- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.07)
-- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.07)
-- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.07)
+- [macOS 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-64.v2.08)
+- [macOS 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-macos-32.v2.08)
+- [linux 64 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-64.v2.08)
+- [linux 32 bit](https://github.com/ldn-softdev/jtm/raw/master/jtm-linux-32.v2.08)
 
 
 #### Compile and install instructions:
@@ -134,7 +134,7 @@ bash $ jtm -h
 usage: jtm [-defhnqr] [-a label] [-i indent] [src_file]
 
 HTML/XML to JSON and back lossless convertor.
-Version 2.07, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
+Version 2.08, developed by Dmitry Lyssenko (ldn.softdev@gmail.com)
 
 optional arguments:
  -d             turn on debugs (multiple calls increase verbosity)
@@ -142,8 +142,8 @@ optional arguments:
  -f             digitize all numerical strings
  -h             help screen
  -n             do not retry parsing upon facing a closing tag w/o its pair
- -q             enforce JSON's quoted solidus behavior
- -r             force printing json in a raw format
+ -q             enforce strict JSON's quoted solidus parsing
+ -r             print json in a raw (compact) format
  -a label       a label used for attribute values [default: attributes]
  -i indent      indent for pretty printing [default: 3]
 
@@ -162,8 +162,9 @@ the tool is html/xml tag semantic agnostic, follows conversion specification:
   <!...>                      <-> { "!": <...> }
   <?tag attributes>           <-> { "?tag": { <attributes> } }
   <?tag>                      <-> { "?tag": null }
-- if a tag enlists a single value then optionally it could be de-listed (default
-behavior), unless the value is "attributes" - then no delisting occurs
+- if a tag enlists a single value then it's value de-listed (default behavior,
+  could be disabled optionally), unless the value is "attributes" - then no
+  delisting occurs
 
 bash $ 
 ```
