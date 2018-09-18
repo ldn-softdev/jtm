@@ -165,10 +165,9 @@
 #define TAG_ATTRB_LBL "attributes"                              // default json label for attributes
 #define DFLT_WS " \t\n\r"
 #define JSN_QUOTE "\b\f\n\r\t\"\\"                              // chars requiring quotation in JSON
-#define JSN_QUOTED "bfnrt\"\\"
-// NOTE: strict JSON behavior requires quoting solidus char '/', however it seems a common
-//       behavior is to ignore it. A user will have an option to switch between behaviors,
-//       defaulting to *ignore* option
+#define JSN_QUOTED "/ubfnrt\"\\"                                // JSON chars following quotation
+// NOTE: solidus quotation is optional per JSON spec, a user will have an option
+//       to chose between desired quotation behavior
 
 
 
@@ -198,6 +197,8 @@ class Jtml {
                 unexpected_json_type, \
                 attribute_label_not_matching, \
                 input_json_is_not_convertible, \
+                unexpected_end_of_quotation, \
+                unexpected_quotation, \
                 end_of_throw
     ENUMSTR(ThrowReason, THROWREASON)
 
@@ -235,10 +236,10 @@ class Jtml {
     bool                digitize(void) const { return dj_; }
     Jtml &              retry(bool x) { rt_ = x; return *this; }
     bool                retry(void) const { return rt_; }
-    bool                is_solidus_quoted(void) const { return jsn_quoted_[0] == '/'; }
+    bool                is_solidus_quoted(void) const { return jsn_quote_[0] == '/'; }
     Jtml &              quote_solidus(bool x) {
-                         if(x) { jsn_quote_="/" JSN_QUOTE; jsn_quoted_ = "/" JSN_QUOTED; }
-                         else { jsn_quote_=JSN_QUOTE; jsn_quoted_ = JSN_QUOTED; }
+                         if(x) { jsn_quote_="/" JSN_QUOTE; }
+                         else { jsn_quote_=JSN_QUOTE; }
                          return *this;
                         }
     uint8_t             tab(void) const { return tab_; }
@@ -355,15 +356,17 @@ std::string Jtml::quote_str(std::string && src) const {
 
 
 std::string Jtml::unquote_str(std::string && src) const {
- // unquote source string as per JSON quotation
+ // unquote JSON source string as per JSON quotation
  std::stringstream ss;
  size_t start=0;
- for(size_t end{ src.find('\\', start) };
+ for(size_t end = src.find('\\', start);
      end != std::string::npos;
      end = src.find('\\', start)) {
-  char qc = src[++end];
-  if(end >= src.size()) break;                                  // i.e. line ending "...\"
-  if(strchr(jsn_quoted_, qc) == nullptr) continue;              // i.e other (non-Json) char quoted
+  char qc = src[++end];                                         // quoted character
+  if(end >= src.size())                                         // i.e. line ending "...\"
+   throw EXP(unexpected_end_of_quotation);
+  if(strchr(jsn_quoted_, qc) == nullptr)                        // i.e other (non-Json) char quoted
+   throw EXP(unexpected_quotation);
   src[end-1] = '\0';
   ss << src.data() + start;
   switch(qc) {                                                  // JSN_QUOTED: bfnt"\/
@@ -372,7 +375,7 @@ std::string Jtml::unquote_str(std::string && src) const {
    case 'n': ss << '\n'; break;
    case 'r': ss << '\r'; break;
    case 't': ss << '\t'; break;
-   default: ss << qc; break;
+   default: ss << '\\' << qc; break;
   }
   start = ++end;
  }
@@ -384,7 +387,7 @@ std::string Jtml::unquote_str(std::string && src) const {
 
 Json & Jtml::jsonize(const std::string &src) {
  // parse input source string into json
- json_.quote_solidus( is_solidus_quoted() );
+ //json_.quote_solidus( is_solidus_quoted() );
  json_ = ARY{};                                                 // top collection is always array
  const_sit si = src.cbegin();                                   // input string iterator
 

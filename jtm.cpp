@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.07"
+#define VERSION "2.08"
 
 
 #define OPT_RDT -
@@ -72,8 +72,8 @@ int main(int argc, char *argv[]) {
  opt[CHR(OPT_DGT)].desc("digitize all numerical strings");
  opt[CHR(OPT_IND)].desc("indent for pretty printing").bind("3").name("indent");
  opt[CHR(OPT_RTR)].desc("do not retry parsing upon facing a closing tag w/o its pair");
- opt[CHR(OPT_RAW)].desc("force printing json in a raw format");
- opt[CHR(OPT_SLD)].desc("enforce JSON's quoted solidus behavior");
+ opt[CHR(OPT_RAW)].desc("print json in a raw (compact) format");
+ opt[CHR(OPT_SLD)].desc("enforce strict JSON's quoted solidus parsing");
  opt[0].desc("file to read source from").name("src_file").bind("<stdin>");
  opt.epilog("\nthe tool is html/xml tag semantic agnostic, follows conversion specification:\n\
   <tag> </tag>                <-> { \"tag\": [] }\n\
@@ -87,8 +87,9 @@ int main(int argc, char *argv[]) {
   <!...>                      <-> { \"!\": <...> }\n\
   <?tag attributes>           <-> { \"?tag\": { <attributes> } }\n\
   <?tag>                      <-> { \"?tag\": null }\n\
-- if a tag enlists a single value then optionally it could be de-listed (default\n\
-behavior), unless the value is \"attributes\" - then no delisting occurs\n");
+- if a tag enlists a single value then it's value de-listed (default behavior,\n\
+  could be disabled optionally), unless the value is \"attributes\" - then no\n\
+  delisting occurs\n");
 
  // parse options
  try { opt.parse(argc,argv); }
@@ -137,7 +138,7 @@ void try_reversing(CommonResource &r) {
 
  try {
   Json j;
-  j.quote_solidus(conv.is_solidus_quoted())
+  j//.quote_solidus(conv.is_solidus_quoted())
    .parse(src_str);
   cout << conv.reinstate(j) << endl;
   exit(RC_OK);
