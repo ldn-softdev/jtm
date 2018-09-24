@@ -423,7 +423,7 @@ void Getopt::parse(int argc, char *argv[], const char *f) {
  #ifndef __linux__
  optreset = 1;                                                  // this is done in order to allow
  #endif
- optind = 1;                                                    // multiple invocation of parse
+ optind = 1;                                                    // - linux way to use optreset
  std::string fmt = recoverFormat_(f);                           // recovered format
 
  if(autohelp_) {

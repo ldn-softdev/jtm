@@ -610,6 +610,9 @@ class Jnode {
 
                         Jnode(void) = default;                  // DC
                         Jnode(const Jnode &jn): Jnode() {       // CC
+                         #ifdef BG_CC
+                          std::cerr << __func__ << "(): CC called..." << std::endl;
+                         #endif
                          auto * volatile jnv = &jn.value();     // when walk iterator is copied its
                          if(jnv == nullptr)                     // supernode is empty, hence chck'n
                           { type_ = jn.type_; return; }         // supernode's type is parent type
@@ -628,21 +631,8 @@ class Jnode {
                          swap(*this, jn);                       // swap will resolve supernode
                         }
 
-    Jnode &             operator=(const Jnode & jn) {           // CA
-                         Jnode copy = jn;                       // if moved to param, clashes w. MA
-                         swap(*this, copy);                     // CC takes care of an empty jn
-                         return *this;
-                        }
-
-    Jnode &             operator=(Jnode &&jn) {                 // MA
-                         auto * volatile jnv = &jn.value();
-                         if(jnv == nullptr) {                   // if jn is an empty supernode
-                          std::swap(value_, jn.value_);         // then swap values w/o resolution
-                          std::swap(type_, jn.type_);
-                          std::swap(descendants_, jn.descendants_);
-                          return *this;
-                         }
-                         swap(*this, jn);
+    Jnode &             operator=(Jnode jn) {                   // CA
+                         swap(*this, jn);                       // CC takes care of an empty jn
                          return *this;
                         }
 
@@ -666,7 +656,6 @@ class Jnode {
                         Jnode(T p, typename std::enable_if<std::is_null_pointer<T>::value>
                                                ::type * = nullptr):
                          type_{Null} {}
-                        // w/o above concept it would clash with const char * type
 
                         // JSON atomic type adapters (string, numeric, boolean):
                         operator const std::string & (void) const {
@@ -820,15 +809,9 @@ class Jnode {
                          return *this;
                         }
 
-    Jnode &             push_back(const Jnode & jn) {
+    Jnode &             push_back(Jnode jn) {
                          if(not is_array()) throw EXP(expected_array_type);
-                         children_().emplace(next_key_(), jn);
-                         return *this;
-                        }
-
-    Jnode &             push_back(Jnode && jn) {
-                         if(not is_array()) throw EXP(expected_array_type);
-                         children_().emplace(next_key_(), std::forward<Jnode>(jn));
+                         children_().emplace(next_key_(), std::move(jn));
                          return *this;
                         }
 
@@ -1025,7 +1008,7 @@ class Jnode::Iterator: public std::iterator<std::bidirectional_iterator_tag, T> 
                             // onto subclasses: i.e. swap(l.sn_.type_, r.sn_.type_) fails.
      private:
                             SuperJnode(void) = delete;          // DC
-                            SuperJnode(Jtype t): Jnode{t} {}
+                            SuperJnode(Jtype t): Jnode{t} {}    // Init Construct
 
         SuperJnode &        operator()(const std::string &s, Jnode &jn)
                              { lbp_ = &s; jnp_ = &jn; return *this; }
@@ -1040,13 +1023,12 @@ class Jnode::Iterator: public std::iterator<std::bidirectional_iterator_tag, T> 
 
  public:
                         Iterator(void) = default;               // DC
-                        Iterator(const Iterator &it): ji_(it.ji_)   // CC
-                         { sn_.type_ = it.sn_.type_; }
+                        Iterator(const Iterator &it):           // CC
+                         ji_(it.ji_)
+                          { sn_.type_ = it.sn_.type_; }
                         Iterator(Iterator &&it)                 // MC
                          { swap(*this, it); }
-    Iterator &          operator=(const Iterator & it)          // CA
-                         { Iterator copy(it); swap(*this, copy); return *this; }
-    Iterator &          operator=(Iterator &&it)                // MA
+    Iterator &          operator=(Iterator it)                  // CA
                          { swap(*this, it); return *this; }
 
                         // convert to const_iterator (from iterator)
@@ -1243,7 +1225,6 @@ std::string Jnode::next_key_(void) const {
 }
 
 
-
 std::ostream & Jnode::print_json_(std::ostream & os, const Jnode & me, int & rl) {
  auto & my = me.value();                                        // resolve if virtual object
  switch(my.type()) {
@@ -1330,10 +1311,12 @@ class Json{
 
                         Json(void) = default;
                         Json(const Jnode &jn): root_{jn.value()} { }
-                        Json(std::string &&str) { parse(str); }
+                        Json(Jnode &&jn): root_{std::move(jn.value())} { }
                         Json(const std::string &str) { parse(str); }
 
-                        operator Jnode & (void) { return root_; }
+                        // perfect type conversion Json -> Jnode:
+                        // that will help facilitating copy elision in Jnode CA
+                        operator Jnode && (void) { return std::forward<Jnode>(root_); }
                         operator const Jnode & (void) const { return root_; }
 
     // class interface:
@@ -1381,10 +1364,8 @@ class Json{
     const std::string & val(void) const { return root().val(); }
     Json &              erase(const std::string & l) { root().erase(l); return *this; }
     Json &              erase(size_t i) { root().erase(i); return *this; }
-    Json &              push_back(Jnode && jn)
-                         { root().push_back(std::forward<Jnode>(jn)); return *this; }
-    Json &              push_back(const Jnode & jn)
-                         { root().push_back(jn); return *this; }
+    Json &              push_back(Jnode jn)
+                         { root().push_back(std::move(jn)); return *this; }
     Json &              pop_back(void)
                          { root().pop_back(); return *this; }
 
@@ -1411,11 +1392,8 @@ class Json{
     uint8_t             tab(void) const { return root().tab(); }
     Json &              tab(uint8_t n) { root().tab(n); return *this; }
     bool                is_solidus_quoted(void) const { return jsn_fbdn_[0] == '/'; }
-    Json &              quote_solidus(bool quote) {
-                         if(quote) { jsn_fbdn_ = "/" JSN_FBDN; }
-                         else { jsn_fbdn_ = JSN_FBDN; }
-                         return *this;
-                        }
+    Json &              quote_solidus(bool quote)
+                         { jsn_fbdn_ = quote? "/" JSN_FBDN: JSN_FBDN; return *this; }
     Json &              clear_cache(void) { sc_.clear(); return *this; }
 
     // calling clear_cache is required once JSON was modified anyhow; it's called
@@ -1424,6 +1402,7 @@ class Json{
 
     //SERDES(root_)                                             // not really needed (so far)
     DEBUGGABLE()
+
     static Jnode::Jtype json_number_definition(std::string::const_iterator & jsp);
 
  protected:
@@ -1442,7 +1421,7 @@ class Json{
     void                parse_number_(Jnode & node, std::string::const_iterator &jsp);
     void                parse_array_(Jnode & node, std::string::const_iterator &jsp);
     void                parse_object_(Jnode & node, std::string::const_iterator &jsp);
-    const char &        skip_blanks_(std::string::const_iterator & jsp);
+    char                skip_blanks_(std::string::const_iterator & jsp);
     Jnode::Jtype        classify_jnode_(std::string::const_iterator & jsp);
     std::string::const_iterator &
                         find_delimiter_(char c, std::string::const_iterator & jsp);
@@ -1518,7 +1497,7 @@ class Json{
 
         iter_jn             jit;                                // iterator pointing to JSON
         std::string         lbl;                                // preserved label for validation
-        size_t              wsi;                                // walk step index
+        size_t              wsi;                                // walk step index (for increments)
     };
 
     // Search Cache Key:
@@ -1534,13 +1513,13 @@ class Json{
                              jnp(jp), ws(w) {}
 
         const Jnode *       json_node(void) const { return jnp; }   // only for COUTABLE
-        COUTABLE(SearchCacheKey, json_node(), ws)
+        static bool 	    cmp(const SearchCacheKey &l, const SearchCacheKey &r)
+                             { return l.jnp != r.jnp? l.jnp<r.jnp: l.ws<r.ws; }
 
         const Jnode *       jnp;
         WalkStep            ws;
 
-        static bool 	    cmp(const SearchCacheKey &l, const SearchCacheKey &r)
-                             { return l.jnp != r.jnp? l.jnp<r.jnp: l.ws<r.ws; }
+        COUTABLE(SearchCacheKey, json_node(), ws)
     };
 
     typedef std::vector<Itr> path_vector;                       // used by iterator
@@ -1646,12 +1625,7 @@ class Json{
                             iterator(iterator &&it) {           // MC
                              swap(*this, it);
                             }
-        iterator &          operator=(const iterator &it) {     // CA
-                             iterator copy = it;
-                             swap(*this, copy);
-                             return *this;
-                            }
-        iterator &          operator=(iterator &&it) {          // MA
+        iterator &          operator=(iterator it) {            // CA
                              swap(*this, it);
                              return *this;
                             }
@@ -1815,14 +1789,17 @@ class Json{
                          if(ct == iterator_based) return ce_ and not icb_.empty();
                          return ce_;
                         }
-    Json &              engage_callbacks(bool x=true)
+    Json &              engage_callbacks(bool x=true)           // engage/disengage all callbacks
                          { ce_ = x; return *this; };
-    Json &              callback(const std::string &lbl, std::function<void(const Jnode &)> &&cb) {
+    Json &              callback(const std::string &lbl,        // plug-in label-callback
+                                 std::function<void(const Jnode &)> &&cb) {
                          lcb_.emplace(std::move(lbl), std::move(cb));
                          return *this;
                         }
-    Json &              callback(iterator &&itr, std::function<void(const Jnode &)> &&cb) {
-                         icb_.emplace_back(std::move(itr), std::move(cb));
+    Json &              callback(iterator itr,                  // plug-in iter-callback
+                                 std::function<void(const Jnode &)> &&cb) {
+                         if(itr != itr.end())                   // don't plug ended iterators
+                          icb_.emplace_back(std::move(itr), std::move(cb));
                          return *this;
                         }
     Json &              clear_callbacks(void)
@@ -2051,7 +2028,7 @@ Jnode::Jtype Json::classify_jnode_(std::string::const_iterator & jsp) {
 }
 
 
-const char & Json::skip_blanks_(std::string::const_iterator & jsp) {
+char Json::skip_blanks_(std::string::const_iterator & jsp) {
  // skip_blanks_() sets pointer to the first a non-blank character
  while(*jsp <= ' ') {
   if(*jsp == CHR_NULL)

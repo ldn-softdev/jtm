@@ -409,7 +409,7 @@ Json & Jtml::jsonize(const std::string &src) {
  }
 
  if(not enumerate() or digitize())                              // post process resulting JSON
-  post_process_(json_);
+  post_process_(json_.root());
 
  return json_;
 }
