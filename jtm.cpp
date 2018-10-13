@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define VERSION "2.08"
+#define VERSION "2.09"
 
 
 #define OPT_RDT -
@@ -93,7 +93,9 @@ int main(int argc, char *argv[]) {
 
  // parse options
  try { opt.parse(argc,argv); }
- catch(stdException & e) { opt.usage(); return e.code() + OFF_GETOPT; }
+ catch(Getopt::stdException & e)
+  { opt.usage(); return e.code() + OFF_GETOPT; }
+
  conv.attr_label(opt[CHR(OPT_ALB)].c_str())
      .enumerate(opt[CHR(OPT_ENM)])
      .digitize(opt[CHR(OPT_DGT)])
@@ -114,9 +116,14 @@ int main(int argc, char *argv[]) {
   if(conv.json() == ARY{}) return RC_EMPTY;
   cout << conv.json().tab(opt[CHR(OPT_IND)]).raw(opt[CHR(OPT_RAW)]) << endl;
  }
- catch(stdException & e) {
+ catch(Jtml::stdException & e) {
   DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
-  cerr << opt.prog_name() << " exception: " << e.what() << endl;
+  cerr << opt.prog_name() << " Jtml exception: " << e.what() << endl;
+  return e.code() + OFF_JTML;
+ }
+ catch(Jnode::stdException & e) {
+  DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
+  cerr << opt.prog_name() << " Jnode exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
  catch(std::regex_error & e) {
@@ -143,7 +150,7 @@ void try_reversing(CommonResource &r) {
   cout << conv.reinstate(j) << endl;
   exit(RC_OK);
  }
- catch(stdException & e) {
+ catch(Json::stdException & e) {
   if(e.code() != Jnode::expected_json_value) throw e;
   DBG(0) DOUT() << "source does not appear to be JSON, parse HTML/XML" << endl;
  }

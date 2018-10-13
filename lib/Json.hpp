@@ -1,5 +1,5 @@
 /*
- * Created by Dmitry Lyssenko, last modified August 2, 2018
+ * Created by Dmitry Lyssenko
  *
  * yet another JSON implementation featuring:
  *  - easy c++ API
@@ -287,7 +287,7 @@
  *
  *   2) search lexemes: enclosed into angular braces <>, or ><, instructs to perform
  *      a textual match everywhere under the given json's tree. Following notations
- *      are  possible:
+ *      are possible:
  *      <txt>, <txt>n, <txt>+n, <txt>S, <txt>Sn, <txt>S+n, and reverse notations:
  *      >txt<, >txt<n, >txt<+n, >txt<S, >txt<Sn, >txt<S+n,
  *      where: txt - is any text to search for,
@@ -407,7 +407,7 @@
  *
  *
  *  Let's print a full address of a person whose first name is "Doc". This is a
- *  sloppy way of doing  it:
+ *  sloppy way of doing it:
  *      for(const auto &rec: json.walk("[Address Book] <^Doc>R [-1] [Address]"))
  *          std::cout << "address: " << rec << std::endl;
  *
@@ -611,7 +611,9 @@ class Jnode {
                         Jnode(void) = default;                  // DC
                         Jnode(const Jnode &jn): Jnode() {       // CC
                          #ifdef BG_CC
-                          std::cerr << __func__ << "(): CC called..." << std::endl;
+                          auto preserved = jn.is_pretty();
+                          if(DBG()(0)) DOUT() << DBG_PROMPT(0) << "CC copying: " << jn.raw() << std::endl;
+                          jn.pretty(preserved);
                          #endif
                          auto * volatile jnv = &jn.value();     // when walk iterator is copied its
                          if(jnv == nullptr)                     // supernode is empty, hence chck'n
@@ -635,6 +637,9 @@ class Jnode {
                          swap(*this, jn);                       // CC takes care of an empty jn
                          return *this;
                         }
+
+                        // type conversions from Json:
+                        Jnode(Json j);
 
                         // atomic values constructor adapters:
                         Jnode(double x): type_{Number} {
@@ -678,7 +683,6 @@ class Jnode {
                          return bul();
                         }
                         // concept ensures in-lieu application (avoid clashing with string type)
-
 
                         // class interface:
     Jtype               type(void) const { return value().type_; }
@@ -815,6 +819,7 @@ class Jnode {
                          return *this;
                         }
 
+
     Jnode &             pop_back(void) {
                          if(not is_iterable()) throw EXP(type_non_iterable);
                          if(not children_().empty())
@@ -872,7 +877,10 @@ class Jnode {
     Jnode &             tab(uint8_t n) { tab_ = n; return *this; }
 
     //SERDES(type_, value_, descendants_)                       // not really needed
-    //DEBUGGABLE()                                              // there are no debugs in Jnode
+    #ifdef BG_CC
+     DEBUGGABLE()                                               // no debugs in Jnode (typically)
+    #endif
+    EXCEPTIONS(ThrowReason)                                     // see "extensions.hpp"
 
  protected:
                         Jnode(Jtype t):type_{t} {}              // for internal use
@@ -894,8 +902,6 @@ class Jnode {
 
     static char         endl_;                                  // either for raw or pretty print
     static uint8_t      tab_;                                   // tab size (for indention)
-
-    EXCEPTIONS(ThrowReason)                                     // see "extensions.hpp"
 };
 
 // class static definitions
@@ -1314,11 +1320,6 @@ class Json{
                         Json(Jnode &&jn): root_{std::move(jn.value())} { }
                         Json(const std::string &str) { parse(str); }
 
-                        // perfect type conversion Json -> Jnode:
-                        // that will help facilitating copy elision in Jnode CA
-                        operator Jnode && (void) { return std::forward<Jnode>(root_); }
-                        operator const Jnode & (void) const { return root_; }
-
     // class interface:
     Jnode &             root(void) { return root_; }
     const Jnode &       root(void) const { return root_; }
@@ -1402,6 +1403,7 @@ class Json{
 
     //SERDES(root_)                                             // not really needed (so far)
     DEBUGGABLE()
+    EXCEPTIONS(Jnode::ThrowReason)
 
     static Jnode::Jtype json_number_definition(std::string::const_iterator & jsp);
 
@@ -1526,7 +1528,6 @@ class Json{
 
     // parse_offset_type_() is dependent on WalkStep definition, hence moved down here
     void                parse_offset_type_(WalkStep & state) const;
-    EXCEPTIONS(Jnode::ThrowReason)
 
  public:
     // Json::iterator: needs to be defined in-class to facilitate container storage
@@ -1804,8 +1805,8 @@ class Json{
                         }
     Json &              clear_callbacks(void)
                          { lcb_.clear(); icb_.clear(); return *this; }
-    lbl_callback_map &  lbl_callbacks(void) { return lcb_; }
-    itr_callback_vec &  itr_callbacks(void) { return icb_; }
+    lbl_callback_map &  lbl_callbacks(void) { return lcb_; }    // access to labeled callbacks
+    itr_callback_vec &  itr_callbacks(void) { return icb_; }    // access to iterator callbacks
 };
 
 // class static definitions
@@ -1818,6 +1819,13 @@ STRINGIFY(Json::Jsearch, JS_ENUM)
 
 
 
+// Jnode methods requiring Json definition:
+Jnode::Jnode(Json j)                                            // type conversions Json -> Jnode
+ { swap(*this, j.root()); }
+
+
+
+// Json definitions:
 Json operator ""_json(const char *c_str, std::size_t len) {
  // raw string parsing
  Json x;
@@ -2458,7 +2466,7 @@ void Json::iterator::walk_search_(size_t idx, Jnode *jn) {
 
 void Json::iterator::search_all_(Jnode *jn, const char *lbl,
                        const WalkStep &ws, std::vector<path_vector> & vpv) {
- // find all matches from  given json node, cache them into current vector of paths:
+ // find all matches from given json node, cache them into current vector of paths:
  // cache is the vector of all found path-vectors
  if(jn->is_iterable()) {
   for(auto it = jn->children_().begin(); it != jn->children_().end(); ++it) {
@@ -2671,7 +2679,7 @@ bool Json::iterator::increment_(long l) {
    DOUT(json_()) << "walk [" << pv_.back().wsi << "] is out of iterations" << std::endl;
   // even if walk_ does not yield a result for a given idx, if walk failed because of
   // other walk step (index), then next walk still might yield a match in the next record.
-  // That logic is required  to handle irregular JSON
+  // That logic is required to handle irregular JSON
   long n = next_iterable_ws(walk_path_().size());
   return n < 0? false: increment_( n );
  }

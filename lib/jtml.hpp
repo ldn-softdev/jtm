@@ -22,7 +22,7 @@
  *    label name, could be changed by user)
  *  - values of the tag (i.e. everything between open tag and closing tag) are listed
  *    in the array of the tag's object
- *  - empty tags (those w/o attributes and values) will be set to  JSON null value
+ *  - empty tags (those w/o attributes and values) will be set to JSON null value
  *
  * This simple code sample illustrates the above behavior:
  *
@@ -99,7 +99,7 @@
  * 3. parse value, facing a new tag?
  *    - merge parsed so far content
  *    - closing tag == my tag? return JSON object.
- *    - closing tag != my tag?  // means my tag is an empty tag
+ *    - closing tag != my tag? // means my tag is an empty tag
  *          yes: return [ { mytag: parsed_my_tag_attr }, parsed_value, closing_tag ]
  *          no: // it's another open tag, they my tag is an empty one
  *              parse new tag, and proses the return
@@ -313,11 +313,10 @@ class Jtml {
                          if(rstr_.back() != '\n') return std::string{};
                          return std::string(tab_*x, ' ');
                         };
-
-    EXCEPTIONS(ThrowReason)                                     // see "extensions.hpp"
-
  public:
+
     DEBUGGABLE(json_)
+    EXCEPTIONS(ThrowReason)                                     // see "extensions.hpp"
 };
 
 STRINGIFY(Jtml::ThrowReason, THROWREASON)
@@ -538,6 +537,9 @@ Jnode Jtml::xml_prolog_(const std::string &tagname, const_sit &si, const_sit &en
  DBG(1) DOUT() << "XML prolog content: '" << std::string{ end_of_tag, si } << "'" << std::endl;
  Jnode xp;
  parse_attributes_(xp[tagname], std::string{end_of_tag, si++});
+ if(xp[tagname][attr_label()].count("?")) 
+  xp[tagname][attr_label()].erase("?");                         // remove trailing '?'
+
  if(dt_ == undefined and tolower(tagname) == "?xml") {
   dt_ = xml;
   DBG(1) DOUT() << "document defined as: " << ENUMS(Doctype, dt_) << std::endl;
@@ -597,7 +599,7 @@ Jtml::AttrProperty Jtml::parse_attributes_(Jnode &j, std::string && attr) const 
   DBG(2) DOUT() << "found attribute: '" << attribute << "'" << std::endl;
 
   while(attribute.find_first_of("'\"") != std::string::npos)    // remove any quotations from label
-   attribute.erase(attribute.find_first_of("'\""));             // no worries, it will optimized
+   attribute.erase(attribute.find_first_of("'\""));
   if(attribute.empty())
    continue;
 
@@ -912,7 +914,7 @@ void Jtml::restore_object_(const Jnode &jn, size_t il) {
 
 
 void Jtml::restore_html_tag_(const Jnode &jf, size_t il) {
- // restore tag  <!...>
+ // restore tag <!...>
  DBG(2) DOUT() << "- html prolog tag" << std::endl;
  rstr_ += indent_(il) + "<!" + unquote_str(jf.str()) + ">\n";
  if(dt_ == undefined and tolower(jf.str()).find("doctype") == 0) {
@@ -923,19 +925,19 @@ void Jtml::restore_html_tag_(const Jnode &jf, size_t il) {
 
 
 void Jtml::restore_xml_tag_(const Jnode &jf, size_t il, const std::string &tag) {
- // restore tag  <?...>
+ // restore tag <?...>
  DBG(2) DOUT() << "- xml prolog tag" << std::endl;
  if(dt_ == undefined and tolower(tag) == "?xml") {
   dt_ = xml;
   DBG(1) DOUT() << "document source is: " << ENUMS(Doctype, dt_) << std::endl;
  }
- rstr_ += indent_(il) + "<" + tag + restore_attributes_(jf) + ">\n";
+ rstr_ += indent_(il) + "<" + tag + restore_attributes_(jf) + "?>\n";
 }
 
 
 
 void Jtml::restore_self_closed_(const Jnode &jf, size_t il, const std::string &tag) {
- // restore tag  <..../>
+ // restore tag <..../>
  DBG(2) DOUT() << "- self-closed tag" << std::endl;
  rstr_ += indent_(il) + "<" + tag + restore_attributes_(jf) + "/>\n";
 }
@@ -943,9 +945,9 @@ void Jtml::restore_self_closed_(const Jnode &jf, size_t il, const std::string &t
 
 
 void Jtml::restore_null_tag_(size_t il, const std::string &tag) {
- // restore tag  empty tag with no attr. e.g.: <br>
+ // restore tag empty tag with no attr. e.g.: <br>
  DBG(2) DOUT() << "- empty tag w/o attributes" << std::endl;
- rstr_ +=  indent_(il) + "<" + tag + ">\n";
+ rstr_ += indent_(il) + "<" + tag + ">\n";
 }
 
 
@@ -953,13 +955,13 @@ void Jtml::restore_null_tag_(size_t il, const std::string &tag) {
 void Jtml::restore_single_object_(const Jnode &jf, size_t il, const std::string &tag) {
  if(jf.front_label() == attr_label()) {                        // empty tag with attr.
   DBG(2) DOUT() << "- empty tag with attributes" << std::endl;
-  rstr_ +=  indent_(il) + "<" + tag + restore_attributes_(jf) + ">\n";
+  rstr_ += indent_(il) + "<" + tag + restore_attributes_(jf) + ">\n";
   return;
  }
  DBG(2) DOUT() << "- tag pair w/o attributes catering another tag" << std::endl;
  rstr_ += indent_(il) + "<" + tag + ">\n";
  restore_object_(jf, il+1);
- rstr_ +=  indent_(il) + "</" + tag + ">\n";
+ rstr_ += indent_(il) + "</" + tag + ">\n";
 }
 
 
