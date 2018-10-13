@@ -368,12 +368,15 @@ std::string Jtml::unquote_str(std::string && src) const {
    throw EXP(unexpected_quotation);
   src[end-1] = '\0';
   ss << src.data() + start;
-  switch(qc) {                                                  // JSN_QUOTED: bfnt"\/
+  switch(qc) {                                                  // JSN_QUOTED: "/ubfnrt\"\\"
    case 'b': ss << '\b'; break;
    case 'f': ss << '\f'; break;
    case 'n': ss << '\n'; break;
    case 'r': ss << '\r'; break;
    case 't': ss << '\t'; break;
+   case '"': ss << '"'; break;
+   case '/': ss << '/'; break;
+   case '\\': ss << '\\'; break;
    default: ss << '\\' << qc; break;
   }
   start = ++end;

@@ -118,12 +118,17 @@ int main(int argc, char *argv[]) {
  }
  catch(Jtml::stdException & e) {
   DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
-  cerr << opt.prog_name() << " Jtml exception: " << e.what() << endl;
+  cerr << opt.prog_name() << " jtml exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
  catch(Jnode::stdException & e) {
   DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
-  cerr << opt.prog_name() << " Jnode exception: " << e.what() << endl;
+  cerr << opt.prog_name() << " jnode exception: " << e.what() << endl;
+  return e.code() + OFF_JTML;
+ }
+ catch(Json::stdException & e) {
+  DBG(0) DOUT() << "exception raised by: " << e.where() << endl;
+  cerr << opt.prog_name() << " json exception: " << e.what() << endl;
   return e.code() + OFF_JTML;
  }
  catch(std::regex_error & e) {
