@@ -448,7 +448,8 @@ void Getopt::parseInputArgs_(int argc, char *argv[], const std::string &fmt) {
  // extract option one by one, create Option container out of extracted values
 
  char option;
- while((option = getopt(argc, argv, fmt.c_str())) != -1) {      // read next option character
+ while(((option = getopt(argc, argv, fmt.c_str())) != -1)
+		&& (option != 255)) {      // read next option character
   if(option == ':')
    throw EXP(opt_argument_missing);                             // missing argument, forced ':'
 
